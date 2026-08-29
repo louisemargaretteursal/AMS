@@ -327,6 +327,7 @@ app.post('/api/employers', async (request, response) => {
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
     'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+    'forwarded_stage', 'forwarded_date',
   ];
 
   const presentFields = employerFields.filter((field) => Object.prototype.hasOwnProperty.call(employer, field));
@@ -377,6 +378,7 @@ app.patch('/api/employers', async (request, response) => {
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
     'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+    'forwarded_stage', 'forwarded_date',
   ];
 
   const updateFields = employerFields.filter((field) => Object.prototype.hasOwnProperty.call(submittedEmployer, field));

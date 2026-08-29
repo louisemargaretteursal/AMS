@@ -157,12 +157,20 @@ const initDb = async () => {
           docket_number TEXT,
           case_date DATE,
           status TEXT NOT NULL,
+          forwarded_stage TEXT,
+          forwarded_date DATE,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
 
       try {
         await executeQuery('ALTER TABLE employers ADD COLUMN IF NOT EXISTS payer_type TEXT DEFAULT \'Interim Payer\'');
+      } catch (_e) {}
+      try {
+        await executeQuery('ALTER TABLE employers ADD COLUMN IF NOT EXISTS forwarded_stage TEXT');
+      } catch (_e) {}
+      try {
+        await executeQuery('ALTER TABLE employers ADD COLUMN IF NOT EXISTS forwarded_date DATE');
       } catch (_e) {}
 
       await executeQuery(`
@@ -237,12 +245,20 @@ const initDb = async () => {
         docket_number TEXT,
         case_date TEXT,
         status TEXT NOT NULL,
+        forwarded_stage TEXT,
+        forwarded_date TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     try {
       await executeQuery('ALTER TABLE employers ADD COLUMN payer_type TEXT DEFAULT \'Interim Payer\'');
+    } catch (_e) {}
+    try {
+      await executeQuery('ALTER TABLE employers ADD COLUMN forwarded_stage TEXT');
+    } catch (_e) {}
+    try {
+      await executeQuery('ALTER TABLE employers ADD COLUMN forwarded_date TEXT');
     } catch (_e) {}
 
     await executeQuery(`

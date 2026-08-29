@@ -494,46 +494,51 @@ const SOA_COMPLIANCE_DAYS = 15;
 const getEmployerSoaInfo = (employer) => {
   const status = String(employer?.status || '').trim();
   if (['settled'].includes(status.toLowerCase())) {
-    return { stage: 'Settled', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'None' };
+    return { stage: 'Settled', isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction: 'None' };
   }
   if (['referred to legal', 'legal'].includes(status.toLowerCase())) {
-    return { stage: 'Referred to Legal', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'Legal Case in Progress' };
+    return { stage: 'Referred to Legal', isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction: 'Legal Case in Progress' };
   }
 
   let activeStage = '1st SOA';
   let servedDate = employer?.soa_date || employer?.billing_date;
   let nextAction = 'Forward records & Serve 2nd SOA';
+  let nextStageCode = '2nd SOA';
   let targetField = 'soa2Date';
 
   if (employer?.soa3_date) {
     activeStage = '3rd SOA';
     servedDate = employer.soa3_date;
     nextAction = 'Forward to Legal / Atty.';
+    nextStageCode = 'Legal';
     targetField = 'legalReferralDate';
   } else if (employer?.soa2_date) {
     activeStage = '2nd SOA';
     servedDate = employer.soa2_date;
     nextAction = 'Forward records & Serve 3rd SOA';
+    nextStageCode = '3rd SOA';
     targetField = 'soa3Date';
   } else if (employer?.soa_date) {
     activeStage = '1st SOA';
     servedDate = employer.soa_date;
     nextAction = 'Forward records & Serve 2nd SOA';
+    nextStageCode = '2nd SOA';
     targetField = 'soa2Date';
   } else if (employer?.billing_date) {
     activeStage = 'Billing';
     servedDate = employer.billing_date;
     nextAction = 'Serve 1st SOA';
+    nextStageCode = '1st SOA';
     targetField = 'soaDate';
   }
 
   if (!servedDate) {
-    return { stage: status || 'Not Yet Served', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'Serve 1st SOA', targetField };
+    return { stage: status || 'Not Yet Served', isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction: 'Serve 1st SOA', targetField };
   }
 
   const served = new Date(`${servedDate}T00:00:00`);
   if (Number.isNaN(served.getTime())) {
-    return { stage: activeStage, isDue: false, isLapsed: false, daysRemaining: null, nextAction, targetField };
+    return { stage: activeStage, isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction, targetField };
   }
 
   const dueDate = new Date(served);
@@ -547,17 +552,118 @@ const getEmployerSoaInfo = (employer) => {
   const isLapsed = diffDays <= 0;
   const isDueSoon = diffDays >= 0 && diffDays <= 1; // 24 hours notice or due today
 
+  // Check if tagged as Forwarded for this active stage
+  const isForwarded = Boolean(employer?.forwarded_stage && employer.forwarded_stage.includes(activeStage));
+  const isDue = (isLapsed || isDueSoon) && !isForwarded;
+
   return {
     stage: `${activeStage} Served`,
+    activeStage,
     servedDate,
     dueDate: dueDate.toISOString().split('T')[0],
     daysRemaining: diffDays,
     isLapsed,
     isDueSoon,
-    isDue: isLapsed || isDueSoon,
+    isForwarded,
+    forwardedDate: employer?.forwarded_date,
+    isDue,
     nextAction,
+    nextStageCode,
     targetField,
   };
+};
+
+const configureStatusDropdown = (employer = null) => {
+  const statusSelect = employerForm.elements.status;
+  if (!statusSelect) return;
+
+  statusSelect.innerHTML = '';
+
+  if (!employer || !employer.id) {
+    // New Employer: Only 1st SOA Served or Settled or Not Yet Registered
+    statusSelect.innerHTML = `
+      <option value="1st SOA Served" selected>1st SOA Served (Initial Notice)</option>
+      <option value="Settled">Settled</option>
+      <option value="Not Yet Registered">Not Yet Registered</option>
+    `;
+    return;
+  }
+
+  // Existing Employer: Check current stage to unlock only logical next progression
+  const has1stSoa = Boolean(employer.soa_date || employer.billing_date);
+  const has2ndSoa = Boolean(employer.soa2_date);
+  const has3rdSoa = Boolean(employer.soa3_date);
+  const isSettled = String(employer.status || '').toLowerCase() === 'settled';
+  const isLegal = String(employer.status || '').toLowerCase().includes('legal') || Boolean(employer.legal_referral_date);
+
+  const options = [];
+
+  if (isSettled) {
+    options.push({ value: 'Settled', label: '✅ Settled', selected: true });
+    options.push({ value: '1st SOA Served', label: '1st SOA Served' });
+  } else if (isLegal) {
+    options.push({ value: 'Referred to Legal', label: '⚖️ Referred to Legal (Current)', selected: true });
+    options.push({ value: 'Settled', label: '✅ Settled' });
+  } else if (has3rdSoa) {
+    options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Current)', selected: employer.status === '3rd SOA Served' });
+    options.push({ value: 'Referred to Legal', label: '⚖️ Forward to Legal / Legal Action' });
+    options.push({ value: 'Settled', label: '✅ Settled' });
+  } else if (has2ndSoa) {
+    options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Current)', selected: employer.status === '2nd SOA Served' });
+    options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Next Notice)' });
+    options.push({ value: 'Settled', label: '✅ Settled' });
+  } else if (has1stSoa) {
+    options.push({ value: '1st SOA Served', label: '1st SOA Served (Current)', selected: employer.status === '1st SOA Served' });
+    options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Next Notice)' });
+    options.push({ value: 'Settled', label: '✅ Settled' });
+  } else {
+    options.push({ value: '1st SOA Served', label: '1st SOA Served', selected: true });
+    options.push({ value: 'Settled', label: 'Settled' });
+    options.push({ value: 'Not Yet Registered', label: 'Not Yet Registered' });
+  }
+
+  statusSelect.innerHTML = options.map((opt) => `
+    <option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.label}</option>
+  `).join('');
+
+  if (employer.status) {
+    statusSelect.value = employer.status;
+  }
+};
+
+const markEmployerAsForwarded = async (employerId, activeStage) => {
+  const matchingRow = document.querySelector(`tr[data-employer-id="${employerId}"]`);
+  const employer = JSON.parse(matchingRow?.dataset.employer || '{}');
+  if (!employer.id) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const updatedEmployer = {
+    ...employer,
+    forwarded_stage: `${activeStage} Forwarded`,
+    forwarded_date: today,
+  };
+
+  const response = await fetch('/api/employers', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${currentUser?.accessToken || ''}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ id: employerId, employer: updatedEmployer }),
+  });
+
+  if (!response.ok) {
+    alert('Unable to mark record as forwarded.');
+    return;
+  }
+
+  const saved = await response.json();
+  document.querySelectorAll(`tr[data-employer-id="${saved.id}"]`).forEach((row) => {
+    row.dataset.employer = JSON.stringify(saved);
+  });
+  addEmployerToTable(saved.assigned_view, employerToRow(saved), saved.id, saved.assigned_view, saved);
+  addEmployerToTable('MasterFile', employerToRow(saved), saved.id, saved.assigned_view, saved);
+  updateSoaReminders();
 };
 
 const isBillingDue = (billingDate, today = new Date()) => {
@@ -599,7 +705,7 @@ const updateSoaReminders = () => {
 
   if (reminderList) {
     if (dueEmployers.length === 0) {
-      reminderList.innerHTML = '<div class="soa-empty-message">🎉 Great job! All SOA compliance periods are up to date. No pending follow-ups required.</div>';
+      reminderList.innerHTML = '<div class="soa-empty-message">🎉 Great job! All SOA compliance periods are up to date or marked as forwarded. No pending follow-ups required.</div>';
     } else {
       reminderList.innerHTML = dueEmployers.map(({ employer, soaInfo }) => `
         <div class="soa-reminder-item ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
@@ -610,18 +716,33 @@ const updateSoaReminders = () => {
               <span class="payer-badge payer-badge-ip">${employer.assigned_view || 'AO'}</span>
             </div>
             <div class="soa-reminder-stage">
-              <strong>${soaInfo.stage}</strong> on ${soaInfo.servedDate || 'N/A'} (15-day due date: ${soaInfo.dueDate || 'N/A'})
+              <strong>${soaInfo.stage}</strong> on ${soaInfo.servedDate || 'N/A'} (15-day deadline: ${soaInfo.dueDate || 'N/A'})
             </div>
             <div class="soa-reminder-days ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
               ${soaInfo.isLapsed ? `🚨 15-day period lapsed by ${Math.abs(soaInfo.daysRemaining)} days!` : '⚠️ 24 Hours Notice: 15-day deadline is today!'}
               &bull; <em>Action required: ${soaInfo.nextAction}</em>
             </div>
           </div>
-          <button class="soa-reminder-action-btn" type="button" data-soa-edit-id="${employer.id}" data-soa-field="${soaInfo.targetField}">
-            Edit &amp; Update Record
-          </button>
+          <div class="soa-reminder-actions">
+            <button class="soa-reminder-forward-btn" type="button" data-soa-forward-id="${employer.id}" data-soa-stage="${soaInfo.activeStage}">
+              📤 Mark as Forwarded
+            </button>
+            <button class="soa-reminder-action-btn" type="button" data-soa-edit-id="${employer.id}" data-soa-field="${soaInfo.targetField}">
+              ✏️ Edit &amp; Update Record
+            </button>
+          </div>
         </div>
       `).join('');
+
+      reminderList.querySelectorAll('[data-soa-forward-id]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const empId = btn.dataset.soaForwardId;
+          const stage = btn.dataset.soaStage;
+          btn.disabled = true;
+          btn.textContent = 'Forwarding...';
+          await markEmployerAsForwarded(empId, stage);
+        });
+      });
 
       reminderList.querySelectorAll('[data-soa-edit-id]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -863,6 +984,7 @@ employerForm.elements.payerType?.addEventListener('change', updatePayerTypeVisib
 const openEmployerModal = (viewName) => {
   editingEmployerId = null;
   employerForm.reset();
+  configureStatusDropdown(null);
   if (employerForm.elements.payerType) employerForm.elements.payerType.value = 'Interim Payer';
   updatePayerTypeVisibility();
   updatePostalCode();
@@ -883,6 +1005,7 @@ const openEmployerEdit = async (row) => {
   if (!employer.id) return;
   editingEmployerId = employer.id;
   employerForm.reset();
+  configureStatusDropdown(employer);
   employerForm.elements.addressCountry.value = employer.address_country || '';
   Object.entries({
     employerId: employer.id,
@@ -1191,6 +1314,8 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
         cell.innerHTML = '<span class="status-badge status-badge-settled">✅ Settled</span>';
       } else if (soaInfo.stage === 'Referred to Legal') {
         cell.innerHTML = '<span class="status-badge status-badge-legal">⚖️ Referred to Legal</span>';
+      } else if (soaInfo.isForwarded) {
+        cell.innerHTML = `<span class="status-badge status-badge-forwarded" title="Forwarded on ${soaInfo.forwardedDate || 'N/A'}">📤 ${soaInfo.stage} (Forwarded &bull; Awaiting ${soaInfo.nextStageCode})</span>`;
       } else if (soaInfo.isLapsed) {
         cell.innerHTML = `<span class="status-badge status-badge-lapsed" title="${soaInfo.nextAction}">🚨 ${soaInfo.stage} (${Math.abs(soaInfo.daysRemaining)}d lapsed)</span>`;
       } else if (soaInfo.isDueSoon) {
