@@ -1,0 +1,18 @@
+{
+  "name": "sss-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AMS SSS monthly operations dashboard",
+  "scripts": {
+    "build": "echo \"No build needed\"",
+    "start": "node api/server.js",
+    "dev": "node --watch api/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "pg": "^8.23.0",
+    "sqlite3": "^6.0.1"
+  }
+}

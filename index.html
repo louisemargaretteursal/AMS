@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toledo - Social Security System</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-brand-panel">
+      <div class="auth-brand-content">
+        <span class="header-logo-window auth-logo-window">
+          <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
+        </span>
+        <h1>Social Security System</h1>
+        <p>Employer Encoding, Billing, & Settlement Monitoring System</p>
+        <span>Toledo City Branch</span>
+      </div>
+    </div>
+    <div class="auth-form-panel">
+      <div class="auth-card-shell">
+        <form class="login-card" id="loginForm">
+          <h2>Sign in</h2>
+          <p class="login-intro">Enter your username and password to access your account.</p>
+          <label class="auth-field">
+            <span>Username</span>
+            <input id="username" name="username" type="text" autocomplete="username" required>
+          </label>
+          <label class="auth-field">
+            <span>Password</span>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="login-error" id="loginError" role="alert" hidden>Invalid username or password.</p>
+          <button class="login-submit" type="submit">Secure login</button>
+          <p class="login-note">Access is managed by the Social Security System - Toledo City Branch.</p>
+        </form>
+        <form class="login-card register-card" id="registerForm" hidden>
+          <p class="login-intro">Enter the information below to register a new account.</p>
+          <label class="auth-field">
+            <span>Full name</span>
+            <input name="fullName" type="text" autocomplete="name" required>
+          </label>
+          <label class="auth-field">
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" required>
+          </label>
+          <label class="auth-field">
+            <span>Password (minimum 8 characters)</span>
+            <input name="registrationPassword" type="password" minlength="8" autocomplete="new-password" required>
+          </label>
+          <label class="auth-field">
+            <span>Confirm password</span>
+            <input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
+          </label>
+          <label class="auth-field">
+            <span>Address</span>
+            <textarea name="address" rows="3" required></textarea>
+          </label>
+          <label class="terms-field">
+            <input name="terms" type="checkbox" required>
+            <span>Check here to indicate that you have read and agree to the <a href="#terms">Terms &amp; Conditions</a> and <a href="#privacy">Privacy Policy</a>.</span>
+          </label>
+          <p class="register-error" id="registerError" role="alert" hidden></p>
+          <button class="login-submit" type="submit">Submit registration</button>
+          <p class="register-footer">Already have an account? <button id="returnToLogin" type="button">Login</button></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-wrapper" id="dashboardShell" hidden>
+
+    <!-- Header -->
+    <header class="main-header">
+      <span class="header-logo-window">
+        <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
+      </span>
+      <h1 class="header-title">SOCIAL SECURITY SYSTEM</h1>
+      <p class="header-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
+      <p class="header-dashboard">MONTHLY OPERATIONS DASHBOARD</p>
+      <p class="header-meta">REPORTING DATE: 13 - Aug 2026 &nbsp;|&nbsp; UPDATED: 13 - Aug 2026 22:17</p>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-bar" id="mainNav">
+      <div class="dashboard-nav-item">
+        <button class="nav-btn active" aria-label="Open dashboard" title="Dashboard">DASHBOARD</button>
+        <button class="nav-btn org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">ORGANIZATIONAL CHART</button>
+      </div>
+      <button class="nav-btn calendar-open-btn" id="calendarOpenButton" type="button" aria-label="Open calendar" title="Calendar">CALENDAR</button>
+      <div class="nav-item" data-nav-view="AO1">
+        <button class="nav-btn" aria-label="Open AO1" title="AO1">AO1</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO1" data-form-view="AO1">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="AO2">
+        <button class="nav-btn" aria-label="Open AO2" title="AO2">AO2</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO2" data-form-view="AO2">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="AO3">
+        <button class="nav-btn" aria-label="Open AO3" title="AO3">AO3</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO3" data-form-view="AO3">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="MasterFile">
+        <button class="nav-btn" aria-label="Open MasterFile" title="MasterFile">MASTERFILE</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="EmployerForm">
+        <button class="nav-btn" aria-label="Open data form" title="Data form">DATA FORM</button>
+      </div>
+      <div class="header-session sidebar-session">
+        <span id="loggedInUser"></span>
+        <button id="logoutButton" type="button">Sign out</button>
+      </div>
+    </nav>
+
+    <div class="database-notification" id="databaseNotification" role="status" aria-live="polite" hidden></div>
+
+    <div class="modal-backdrop" id="employerSuccessModal" hidden>
+      <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="employerSuccessTitle">
+        <div class="calendar-modal-header">
+          <h2 id="employerSuccessTitle">SUBMISSION SUCCESSFUL</h2>
+          <button class="modal-close-btn" id="employerSuccessClose" type="button" aria-label="Close submission notification">&times;</button>
+        </div>
+        <div class="calendar-summary">
+          <p>Employer data submitted successfully.</p>
+        </div>
+        <div class="calendar-notification-actions">
+          <button class="calendar-dismiss-btn" id="employerSuccessOk" type="button">OK</button>
+        </div>
+      </section>
+    </div>
+
+    <main class="employer-form-page" id="employerFormView" hidden aria-live="polite">
+      <section class="employer-modal" aria-labelledby="employerFormTitle">
+        <div class="employer-modal-header">
+          <h2 id="employerFormTitle">Employer's Data Form</h2>
+          <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
+        </div>
+        <form class="employer-form" id="employerForm">
+          <input type="hidden" name="employerId" value="">
+          <input type="hidden" name="assignedView" value="">
+          <label>Employer Number:<input name="employerNumber" type="text"></label>
+          <label>Employer Name:<input name="employerName" type="text"></label>
+          <input name="address" type="hidden">
+          <div class="address-fields">
+            <label>Address:<input name="addressLine1" type="text" autocomplete="address-line1"></label>
+            <label>Country:
+              <select name="addressCountry" autocomplete="country-name">
+                <option value="">Select country</option>
+                <option selected>Philippines</option>
+              </select>
+            </label>
+            <label>Province:
+              <select name="addressState" autocomplete="address-level1" disabled>
+                <option value="">Select country first</option>
+              </select>
+            </label>
+            <label>Municipality:
+              <select name="addressCity" autocomplete="address-level2" disabled>
+                <option value="">Select province first</option>
+              </select>
+            </label>
+            <label class="barangay-field" hidden>Barangay:
+              <select name="addressBarangay" autocomplete="address-line3" disabled>
+                <option value="">Select city first</option>
+              </select>
+            </label>
+            <label>Postal Code:<input name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Select city"></label>
+          </div>
+          <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
+          <label>Principal:<input name="principal" type="text" inputmode="decimal"></label>
+          <label>Penalty:<input name="penalty" type="text" inputmode="decimal"></label>
+          <label>Interest:<input name="interest" type="text" inputmode="decimal"></label>
+          <label>Total:<input name="totalAmount" type="text" inputmode="decimal" disabled></label>
+          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Total:<input name="paymentTotal" type="text" inputmode="decimal" disabled></label>
+          <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
+          <label>SOA Date Served:<input name="soaDate" type="date"></label>
+          <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
+          <label class="edit-only">Date 3rd SOA (Served):<input name="soa3Date" type="date"></label>
+          <label>Date of Coverage:<input name="coverageDate" type="date"></label>
+          <label class="edit-only">Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
+          <label class="edit-only">Demand Letter Date:<input name="demandLetterDate" type="date"></label>
+          <label class="edit-only">Demand Letter Received Date:<input name="demandLetterReceivedDate" type="date"></label>
+          <label class="edit-only">Handling Lawyer:<input name="handlingLawyer" type="text"></label>
+          <label class="edit-only">Docket #:<input name="docketNumber" type="text"></label>
+          <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
+          <label>Person Received:<input name="personReceived" type="text"></label>
+          <label>Status:
+            <select name="status" required>
+              <option value="" selected disabled>Select status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registed">Registed</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+            </select>
+          </label>
+          <button class="employer-submit-btn" type="submit">SUBMIT</button>
+        </form>
+      </section>
+    </main>
+
+    <main id="dashboardView">
+
+    <!-- Metric Cards Row 1 -->
+    <section class="metrics-row metrics-row-5">
+      <div class="metric-card">
+        <div class="metric-header metric-blue">TOTAL EMPLOYERS</div>
+        <div class="metric-value" data-main-metric="total">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-green">SETTLED</div>
+        <div class="metric-value" data-main-metric="settled">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-red">UNSETTLED</div>
+        <div class="metric-value" data-main-metric="unsettled">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-gold">COMPLETION</div>
+        <div class="metric-value" data-main-metric="completion">0%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-lightblue">TOTAL BILLED</div>
+        <div class="metric-value" data-main-metric="billed">0</div>
+      </div>
+    </section>
+
+    <!-- Metric Cards Row 2 -->
+    <section class="metrics-row metrics-row-4">
+      <div class="metric-card">
+        <div class="metric-header metric-green">SETTLED AMOUNT</div>
+        <div class="metric-value" data-main-metric="settledAmount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-red">UNSETTLED AMOUNT</div>
+        <div class="metric-value" data-main-metric="unsettledAmount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-gold">REGISTERED</div>
+        <div class="metric-value" data-main-metric="registered">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-lightblue">NOT YET REGISTERED</div>
+        <div class="metric-value" data-main-metric="unregistered">0</div>
+      </div>
+    </section>
+
+    <!-- Middle Section: Tables -->
+    <section class="middle-section">
+      <!-- Branch Performance Table -->
+      <div class="panel panel-branch">
+        <div class="panel-header">BRANCH PERFORMANCE</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Records</th>
+                <th>Settled</th>
+                <th>Unsettled</th>
+                <th>Billed Amount</th>
+                <th>Unsettled Amount</th>
+                <th>Completion%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-branch-row="AO1">
+                <td>AO1</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr data-branch-row="AO2">
+                <td>AO2</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr data-branch-row="AO3">
+                <td>AO3</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr class="total-row">
+                <td>TOTAL</td>
+                <td data-branch-total="total">0</td>
+                <td data-branch-total="settled">0</td>
+                <td data-branch-total="unsettled">0</td>
+                <td data-branch-total="billed">0</td>
+                <td data-branch-total="unsettledAmount">0</td>
+                <td data-branch-total="completion">0%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Status & Data Quality Monitor -->
+      <div class="panel panel-status">
+        <div class="panel-header">STATUS &amp; DATA QUALITY MONITOR</div>
+        <div class="panel-body">
+          <table class="status-table">
+            <tbody>
+              <tr>
+                <td>Settled records</td>
+                <td data-status-metric="settled">0</td>
+              </tr>
+              <tr>
+                <td>Unsettled records</td>
+                <td data-status-metric="unsettled">0</td>
+              </tr>
+              <tr>
+                <td>Records missing amount</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Records missing billing date</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Records missing status</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Duplicate employer number</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Section: Charts + Insights -->
+    <section class="bottom-section">
+      <div class="charts-area">
+        <div class="panel panel-charts">
+          <div class="panel-header">BRANCH PERFORMANCE CHART</div>
+          <div class="charts-grid">
+            <div class="chart-box">
+              <p class="chart-title">EMPLOYERS ENCODED BY BRANCH</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="pieChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <p class="chart-title">SETTLED VS UNSETTLED</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="barChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <p class="chart-title">OVERALL PERFORMANCE CHART</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="groupedBarChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-insights">
+        <div class="panel-header">MANAGEMENT INSIGHTS</div>
+        <div class="panel-body insights-body">
+          <ul class="insights-list">
+            <li data-insight="leadingBranch">AO2 currently has the most encoded records.</li>
+            <li data-insight="completion">Overall completion rate: 0%</li>
+            <li data-insight="billing">Total billed: P0.00 | Unsettled: P0.00</li>
+            <li data-insight="settlement">Settled: 0 | Unsettled: 0</li>
+            <li data-insight="registration">Registered: 0 | Not Yet Registered: 0</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    </main>
+
+    <main class="ao-views" aria-live="polite">
+      <section class="ao-view" data-ao-view="AO1">
+        <div class="ao-table-filters" aria-label="AO1 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO1 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO1 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO1 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO1" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+              </tr>
+              <tr>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="AO2">
+        <div class="ao-table-filters" aria-label="AO2 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO2 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO2 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO2 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO2" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+              </tr>
+              <tr>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="AO3">
+        <div class="ao-table-filters" aria-label="AO3 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO3 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO3 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO3 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO3" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+              </tr>
+              <tr>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="MasterFile">
+        <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter MasterFile by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by AO</span>
+            <select data-filter-view aria-label="Filter MasterFile by AO">
+              <option value="">All AO</option>
+              <option value="AO1">AO1</option>
+              <option value="AO2">AO2</option>
+              <option value="AO3">AO3</option>
+            </select>
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter MasterFile by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="MasterFile" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+              </tr>
+              <tr>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="tableDashboardModal" hidden>
+      <section class="table-dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="tableDashboardTitle">
+        <div class="employer-modal-header">
+          <h2 id="tableDashboardTitle">AO1 DASHBOARD</h2>
+          <button class="modal-close-btn" id="tableDashboardClose" type="button" aria-label="Close dashboard">&times;</button>
+        </div>
+        <div class="table-dashboard-content">
+          <section class="metrics-row metrics-row-5">
+            <div class="metric-card"><div class="metric-header metric-blue">TOTAL EMPLOYERS</div><div class="metric-value" data-dashboard-metric="total">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-green">SETTLED</div><div class="metric-value" data-dashboard-metric="settled">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED</div><div class="metric-value" data-dashboard-metric="unsettled">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">COMPLETION</div><div class="metric-value" data-dashboard-metric="completion">0%</div></div>
+            <div class="metric-card"><div class="metric-header metric-lightblue">TOTAL BILLED</div><div class="metric-value" data-dashboard-metric="billed">0</div></div>
+          </section>
+          <section class="metrics-row metrics-row-4">
+            <div class="metric-card"><div class="metric-header metric-green">SETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="settledAmount">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="unsettledAmount">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">REGISTERED</div><div class="metric-value" data-dashboard-metric="registered">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-lightblue">NOT YET REGISTERED</div><div class="metric-value" data-dashboard-metric="unregistered">0</div></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <main class="org-chart-page" id="orgChartModal" hidden aria-labelledby="orgChartTitle">
+        <div class="employer-modal-header">
+          <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
+          <button class="org-chart-page-back" id="orgChartClose" type="button">&#8592; Back</button>
+        </div>
+        <div class="org-chart-content">
+          <div class="org-chart-level org-chart-root-level" data-org-chart-group="root"></div>
+          <div class="org-chart-branches">
+            <div class="org-chart-level org-chart-admin-level" data-org-chart-group="admin"></div>
+            <div class="org-chart-level org-chart-user-level" data-org-chart-group="users"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop delete-confirm-backdrop" id="deleteConfirmModal" hidden>
+      <section class="delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+        <button class="delete-confirm-close" id="deleteConfirmClose" type="button" aria-label="Close delete confirmation">&times;</button>
+        <div class="delete-confirm-icon" aria-hidden="true">&#128465;</div>
+        <h2 id="deleteConfirmTitle">Delete selected data?</h2>
+        <p>Are you sure you want to delete the selected data?</p>
+        <p class="delete-confirm-error" id="deleteConfirmError" role="alert" hidden></p>
+        <div class="delete-confirm-actions">
+          <button class="delete-cancel-btn" id="deleteConfirmCancel" type="button">No, cancel</button>
+          <button class="delete-approve-btn" id="deleteConfirmApprove" type="button">Yes, I'm sure</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop logout-confirm-backdrop" id="logoutConfirmModal" hidden>
+      <section class="logout-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+        <h2 id="logoutConfirmTitle">Are you sure you want to log out?</h2>
+        <div class="logout-confirm-actions">
+          <button class="logout-approve-btn" id="logoutConfirmApprove" type="button">Log out</button>
+          <button class="logout-cancel-btn" id="logoutConfirmCancel" type="button">Cancel</button>
+        </div>
+      </section>
+    </div>
+
+    <main class="calendar-page" id="calendarModal" hidden aria-labelledby="calendarTitle">
+      <section class="calendar-modal">
+        <div class="calendar-modal-header">
+          <h2 id="calendarTitle">CALENDAR</h2>
+          <button class="calendar-page-back" id="calendarClose" type="button">&#8592; Back</button>
+        </div>
+        <div class="calendar-toolbar">
+          <button class="calendar-nav-btn" id="calendarPrevious" type="button" aria-label="Previous month">&#8592;</button>
+          <h3 id="calendarMonthLabel"></h3>
+          <button class="calendar-nav-btn" id="calendarNext" type="button" aria-label="Next month">&#8594;</button>
+          <button class="calendar-add-btn" id="calendarAddEvent" type="button">Add event</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarEventModal" hidden>
+      <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="calendarEventTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarEventTitle">ADD EVENT</h2>
+          <button class="modal-close-btn" id="calendarEventClose" type="button" aria-label="Close event form">&times;</button>
+        </div>
+        <form id="calendarEventForm" class="calendar-event-form">
+          <label>Event title<input name="title" type="text" required maxlength="120"></label>
+          <label>Date<input name="date" type="date" required></label>
+          <label>Description<textarea name="description" rows="4"></textarea></label>
+          <p class="calendar-error" id="calendarError" role="alert" hidden></p>
+          <button class="calendar-add-btn" type="submit">Save event</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarSummaryModal" hidden>
+      <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="calendarSummaryTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarSummaryTitle">EVENT SUMMARY</h2>
+          <button class="modal-close-btn" id="calendarSummaryClose" type="button" aria-label="Close event summary">&times;</button>
+        </div>
+        <div class="calendar-summary" id="calendarSummary"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarNotificationModal" hidden>
+      <section class="calendar-event-modal calendar-notification-modal" role="dialog" aria-modal="true" aria-labelledby="calendarNotificationTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarNotificationTitle">TODAY'S EVENTS</h2>
+          <button class="modal-close-btn" id="calendarNotificationClose" type="button" aria-label="Close today's events">&times;</button>
+        </div>
+        <div class="calendar-summary" id="calendarNotificationSummary"></div>
+        <div class="calendar-notification-actions">
+          <button class="calendar-add-btn" id="calendarNotificationOpen" type="button">Open calendar</button>
+          <button class="calendar-dismiss-btn" id="calendarNotificationDismiss" type="button">Dismiss</button>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
