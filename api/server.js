@@ -3,7 +3,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 require('dotenv').config();
 
-const { isPg, get, all, run, executeQuery, hashPassword, initDb } = require('./db');
+const { getIsPg, get, all, run, executeQuery, hashPassword, initDb } = require('./db');
 
 const app = express();
 const APP_SESSION_SECRET = process.env.APP_SESSION_SECRET || 'sss-local-dev-secret-change-me';
@@ -71,7 +71,7 @@ app.use(express.static(path.join(__dirname, '..')));
 
 // Health check
 app.get('/api/health', (_request, response) => {
-  response.json({ status: 'ok', database: isPg ? 'postgresql' : 'sqlite' });
+  response.json({ status: 'ok', database: getIsPg() ? 'postgresql' : 'sqlite' });
 });
 
 // Authentication / Login
@@ -220,7 +220,7 @@ app.post('/api/calendar-events', async (request, response) => {
   }
 
   try {
-    if (isPg) {
+    if (getIsPg()) {
       const created = await get(
         `INSERT INTO calendar_events (title, event_date, start_time, end_time, description, created_by)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -322,7 +322,7 @@ app.post('/api/employers', async (request, response) => {
   }
 
   const employerFields = [
-    'assigned_view', 'employer_number', 'employer_name', 'address', 'address_line1', 'address_country', 'address_state',
+    'assigned_view', 'employer_number', 'employer_name', 'payer_type', 'address', 'address_line1', 'address_country', 'address_state',
     'address_city', 'address_barangay', 'address_postal_code', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
@@ -334,7 +334,7 @@ app.post('/api/employers', async (request, response) => {
   const values = presentFields.map((field) => employer[field]);
 
   try {
-    if (isPg) {
+    if (getIsPg()) {
       const created = await get(
         `INSERT INTO employers (${presentFields.join(', ')}) VALUES (${placeholders}) RETURNING *`,
         values
@@ -372,7 +372,7 @@ app.patch('/api/employers', async (request, response) => {
   }
 
   const employerFields = [
-    'employer_number', 'employer_name', 'address', 'address_line1', 'address_country', 'address_state',
+    'employer_number', 'employer_name', 'payer_type', 'address', 'address_line1', 'address_country', 'address_state',
     'address_city', 'address_barangay', 'address_postal_code', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
@@ -388,7 +388,7 @@ app.patch('/api/employers', async (request, response) => {
   const values = [...updateFields.map((field) => submittedEmployer[field]), id];
 
   try {
-    if (isPg) {
+    if (getIsPg()) {
       const updated = await get(
         `UPDATE employers SET ${setClause} WHERE id = $${values.length} RETURNING *`,
         values

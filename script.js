@@ -450,6 +450,7 @@ calendarNotificationModal.addEventListener('click', (event) => {
 const employerFields = [
   'employer_number',
   'employer_name',
+  'payer_type',
   'address',
   'employee_count',
   'principal',
@@ -474,7 +475,7 @@ const employerFields = [
   'status',
   'person_received',
 ];
-const amountFieldIndexes = [4, 5, 6, 7, 8, 9, 10, 11];
+const amountFieldIndexes = [5, 6, 7, 8, 9, 10, 11, 12];
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
   .map((row) => [...row.cells].map((cell) => cell.textContent.trim()));
@@ -512,7 +513,7 @@ const showDatabaseDueNotification = (viewName) => {
   if (!view || !databaseNotification) return;
 
   const dueCount = [...view.querySelectorAll('tbody tr[data-employer-id]')]
-    .filter((row) => isBillingDue(row.cells[12]?.dataset.date)).length;
+    .filter((row) => isBillingDue(row.cells[13]?.dataset.date)).length;
   databaseNotification.textContent = `${dueCount} due ${dueCount === 1 ? 'record' : 'records'} found.`;
   databaseNotification.hidden = false;
   clearTimeout(databaseNotificationTimer);
@@ -530,31 +531,56 @@ const filterAoTable = (viewName) => {
   const selectedDate = filters.querySelector('[data-filter-date]').value;
   const selectedStatus = normalizeStatus(filters.querySelector('[data-filter-status]').value);
   const selectedView = filters.querySelector('[data-filter-view]')?.value || '';
+  const activeSheet = view.querySelector('.ao-sheet-tab.active')?.dataset.sheet || 'ALL';
   const rows = [...view.querySelectorAll('tbody tr[data-employer-id]')];
 
+  let rpCount = 0;
+  let ipCount = 0;
+  let spCount = 0;
+
   rows.forEach((row) => {
+    const payerType = row.dataset.payerType || 'Interim Payer';
+    if (payerType === 'Regular Payer') rpCount += 1;
+    else if (payerType === 'Special Payer') spCount += 1;
+    else ipCount += 1;
+
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
-    const matchesDate = !selectedDate || row.cells[12]?.dataset.date === selectedDate;
-    const isDueDate = isBillingDue(row.cells[12]?.dataset.date);
+    const matchesDate = !selectedDate || row.cells[13]?.dataset.date === selectedDate;
+    const isDueDate = isBillingDue(row.cells[13]?.dataset.date);
     const matchesStatus = !selectedStatus
-      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[23]?.textContent || '') === selectedStatus);
+      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[24]?.textContent || '') === selectedStatus);
     const matchesView = !selectedView || row.dataset.assignedView === selectedView;
-    const isVisible = matchesQuery && matchesDate && matchesStatus && matchesView;
+
+    let matchesSheet = true;
+    if (activeSheet === 'RP') matchesSheet = payerType === 'Regular Payer';
+    else if (activeSheet === 'IP') matchesSheet = payerType === 'Interim Payer';
+    else if (activeSheet === 'SP') matchesSheet = payerType === 'Special Payer';
+
+    const isVisible = matchesQuery && matchesDate && matchesStatus && matchesView && matchesSheet;
     row.hidden = !isVisible;
   });
+
+  const countAll = view.querySelector('[data-sheet-count="ALL"]');
+  const countRP = view.querySelector('[data-sheet-count="RP"]');
+  const countIP = view.querySelector('[data-sheet-count="IP"]');
+  const countSP = view.querySelector('[data-sheet-count="SP"]');
+  if (countAll) countAll.textContent = rows.length;
+  if (countRP) countRP.textContent = rpCount;
+  if (countIP) countIP.textContent = ipCount;
+  if (countSP) countSP.textContent = spCount;
 };
 
 const getDashboardMetrics = (values) => {
   const total = values.length;
-  const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
-  const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
-  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
+  const settled = values.filter((row) => (row[24] || '').toLowerCase() === 'settled').length;
+  const unsettled = values.filter((row) => (row[24] || '').toLowerCase() === 'unsettled').length;
+  const billed = values.reduce((sum, row) => sum + parseAmount(row[8]), 0);
+  const settledAmount = values.filter((row) => (row[24] || '').toLowerCase() === 'settled')
+    .reduce((sum, row) => sum + parseAmount(row[8]), 0);
+  const unsettledAmount = values.filter((row) => (row[24] || '').toLowerCase() === 'unsettled')
+    .reduce((sum, row) => sum + parseAmount(row[8]), 0);
+  const registered = values.filter((row) => ['registed', 'registered'].includes((row[24] || '').toLowerCase())).length;
+  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes((row[24] || '').toLowerCase())).length;
 
   return {
     total,
@@ -667,9 +693,26 @@ const refreshCharts = () => {
   groupedBarChart.update('none');
 };
 
+const updatePayerTypeVisibility = () => {
+  const payerType = employerForm.elements.payerType?.value;
+  const isRegular = payerType === 'Regular Payer';
+  const collectiblesGroup = document.getElementById('collectiblesFieldsGroup');
+  if (collectiblesGroup) collectiblesGroup.hidden = isRegular;
+  if (isRegular) {
+    employerForm.elements.principal.value = '0.00';
+    employerForm.elements.penalty.value = '0.00';
+    employerForm.elements.interest.value = '0.00';
+    employerForm.elements.totalAmount.value = '0.00';
+  }
+};
+
+employerForm.elements.payerType?.addEventListener('change', updatePayerTypeVisibility);
+
 const openEmployerModal = (viewName) => {
   editingEmployerId = null;
   employerForm.reset();
+  if (employerForm.elements.payerType) employerForm.elements.payerType.value = 'Interim Payer';
+  updatePayerTypeVisibility();
   updatePostalCode();
   loadAddressLocations({ useDefaults: true });
   employerForm.elements.assignedView.value = getOfficerView(currentUser?.role) || viewName;
@@ -694,6 +737,7 @@ const openEmployerEdit = async (row) => {
     assignedView: employer.assigned_view,
     employerNumber: employer.employer_number,
     employerName: employer.employer_name,
+    payerType: employer.payer_type || 'Interim Payer',
     address: employer.address,
     addressLine1: employer.address_line1,
     addressPostalCode: employer.address_postal_code,
@@ -722,6 +766,7 @@ const openEmployerEdit = async (row) => {
   }).forEach(([field, value]) => {
     if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
   });
+  updatePayerTypeVisibility();
   amountFieldNames.forEach((fieldName) => {
     employerForm.elements[fieldName].value = formatAmount(employerForm.elements[fieldName].value);
   });
@@ -966,19 +1011,28 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
     targetBody.appendChild(targetRow);
   }
 
+  const payerType = (employer?.payer_type || rowValues[2] || 'Interim Payer').trim();
+  const badgeClass = payerType === 'Regular Payer' ? 'payer-badge-rp' : payerType === 'Special Payer' ? 'payer-badge-sp' : 'payer-badge-ip';
+  const badgeCode = payerType === 'Regular Payer' ? 'RP' : payerType === 'Special Payer' ? 'SP' : 'IP';
+
   targetRow.replaceChildren(...rowValues.map((value, cellIndex) => {
     const cell = document.createElement('td');
-    cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
-      ? formatAmount(value)
-      : value || '';
+    if (cellIndex === 2) {
+      cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerType}</span>`;
+    } else {
+      cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
+        ? formatAmount(value)
+        : value || '';
+    }
     return cell;
   }));
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
-  const billingDateCell = targetRow.cells[12];
-  if (billingDateCell) billingDateCell.dataset.date = rowValues[12] || '';
+  targetRow.dataset.payerType = payerType;
+  const billingDateCell = targetRow.cells[13];
+  if (billingDateCell) billingDateCell.dataset.date = rowValues[13] || '';
   if (employer) targetRow.dataset.employer = JSON.stringify(employer);
-  targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[12]));
+  targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[13]));
   filterAoTable(viewName);
 
   return true;
@@ -1320,15 +1374,22 @@ citySelect.addEventListener('change', () => {
   updatePostalCode();
   loadBarangaysForAddress();
 });
-loadAddressLocations({ useDefaults: true });
-
-employerForm.addEventListener('submit', async (event) => {
+loadAddressLocations({ useDefaults: true });employerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(employerForm);
+  const payerType = formData.get('payerType') || 'Interim Payer';
+  const isRegular = payerType === 'Regular Payer';
+
+  const principal = isRegular ? 0 : parseAmount(formData.get('principal'));
+  const penalty = isRegular ? 0 : parseAmount(formData.get('penalty'));
+  const interest = isRegular ? 0 : parseAmount(formData.get('interest'));
+  const totalAmount = Number((principal + penalty + interest).toFixed(2));
+
   const employer = {
     assigned_view: formData.get('assignedView'),
     employer_number: formData.get('employerNumber'),
     employer_name: formData.get('employerName'),
+    payer_type: payerType,
     address: [
       formData.get('addressLine1'),
       formData.get('addressCity'),
@@ -1342,14 +1403,10 @@ employerForm.addEventListener('submit', async (event) => {
     address_barangay: formData.get('addressBarangay') || '',
     address_postal_code: formData.get('addressPostalCode') || '',
     employee_count: Number(formData.get('employeeCount') || 0),
-    principal: parseAmount(formData.get('principal')),
-    penalty: parseAmount(formData.get('penalty')),
-    interest: parseAmount(formData.get('interest')),
-    total_amount: Number((
-      parseAmount(formData.get('principal'))
-      + parseAmount(formData.get('penalty'))
-      + parseAmount(formData.get('interest'))
-    ).toFixed(2)),
+    principal,
+    penalty,
+    interest,
+    total_amount: totalAmount,
     payment_principal: parseAmount(formData.get('paymentPrincipal')),
     payment_interest: parseAmount(formData.get('paymentInterest')),
     payment_penalty: parseAmount(formData.get('paymentPenalty')),
@@ -1391,6 +1448,7 @@ employerForm.addEventListener('submit', async (event) => {
   const savedEmployer = await response.json();
   document.querySelectorAll(`tr[data-employer-id="${savedEmployer.id}"]`).forEach((row) => {
     row.dataset.employer = JSON.stringify(savedEmployer);
+    row.dataset.payerType = savedEmployer.payer_type || 'Interim Payer';
   });
   addEmployerToTable(savedEmployer.assigned_view, employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
@@ -1401,8 +1459,19 @@ employerForm.addEventListener('submit', async (event) => {
   employerSuccessOk.focus();
 });
 
+document.querySelectorAll('.ao-sheet-tab').forEach((tabButton) => {
+  tabButton.addEventListener('click', () => {
+    const sheetTabs = tabButton.closest('.ao-sheet-tabs');
+    sheetTabs?.querySelectorAll('.ao-sheet-tab').forEach((t) => t.classList.remove('active'));
+    tabButton.classList.add('active');
+    const viewSection = tabButton.closest('.ao-view');
+    const viewName = viewSection?.dataset.aoView;
+    if (viewName) filterAoTable(viewName);
+  });
+});
+
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
-  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(25), '</tr>').repeat(21);
+  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(26), '</tr>').repeat(21);
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {

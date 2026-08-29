@@ -1811,3 +1811,110 @@ body {
     border-bottom: 1px solid #ddd;
   }
 }
+
+/* ==========================================================================
+   AO Sheet Tabs (RP, IP, SP & All Records)
+   ========================================================================== */
+.ao-sheet-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 4px 6px;
+  background: #eef2f6;
+  border-radius: 10px;
+  border: 1px solid #dbe3eb;
+  flex-wrap: wrap;
+}
+
+.ao-sheet-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #d0dbe7;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ao-sheet-tab:hover {
+  background: #f8fafc;
+  color: #1e3a8a;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+.ao-sheet-tab.active {
+  background: #173f78;
+  color: #ffffff;
+  border-color: #173f78;
+  box-shadow: 0 3px 8px rgba(23, 63, 120, 0.28);
+}
+
+.ao-sheet-tab .sheet-count {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 12px;
+  background: #e2e8f0;
+  color: #334155;
+  transition: all 0.18s ease;
+}
+
+.ao-sheet-tab.active .sheet-count {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Payer Type Badges & Form Group
+   ========================================================================== */
+.payer-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.payer-badge-rp {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.payer-badge-ip {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.payer-badge-sp {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.payer-type-field select {
+  font-weight: 600;
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.collectibles-fields-group {
+  display: contents;
+}
+
+.collectibles-fields-group[hidden] {
+  display: none !important;
+}
+

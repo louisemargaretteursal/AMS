@@ -143,6 +143,14 @@
           <input type="hidden" name="assignedView" value="">
           <label>Employer Number:<input name="employerNumber" type="text"></label>
           <label>Employer Name:<input name="employerName" type="text"></label>
+          <label class="payer-type-field">Payer Type:
+            <select name="payerType" id="payerTypeSelect" required>
+              <option value="" disabled selected>Select payer type</option>
+              <option value="Regular Payer">Regular Payer (RP)</option>
+              <option value="Interim Payer">Interim Payer (IP)</option>
+              <option value="Special Payer">Special Payer (SP)</option>
+            </select>
+          </label>
           <input name="address" type="hidden">
           <div class="address-fields">
             <label>Address:<input name="addressLine1" type="text" autocomplete="address-line1"></label>
@@ -170,10 +178,12 @@
             <label>Postal Code:<input name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Select city"></label>
           </div>
           <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
-          <label>Principal:<input name="principal" type="text" inputmode="decimal"></label>
-          <label>Penalty:<input name="penalty" type="text" inputmode="decimal"></label>
-          <label>Interest:<input name="interest" type="text" inputmode="decimal"></label>
-          <label>Total:<input name="totalAmount" type="text" inputmode="decimal" disabled></label>
+          <div class="collectibles-fields-group" id="collectiblesFieldsGroup">
+            <label>Principal:<input name="principal" type="text" inputmode="decimal"></label>
+            <label>Penalty:<input name="penalty" type="text" inputmode="decimal"></label>
+            <label>Interest:<input name="interest" type="text" inputmode="decimal"></label>
+            <label>Total:<input name="totalAmount" type="text" inputmode="decimal" disabled></label>
+          </div>
           <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="text" inputmode="decimal"></label>
           <label class="edit-only">Payment Interest:<input name="paymentInterest" type="text" inputmode="decimal"></label>
           <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="text" inputmode="decimal"></label>
@@ -392,6 +402,12 @@
 
     <main class="ao-views" aria-live="polite">
       <section class="ao-view" data-ao-view="AO1">
+        <div class="ao-sheet-tabs" role="tablist">
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+        </div>
         <div class="ao-table-filters" aria-label="AO1 table filters">
           <label class="ao-table-search">
             <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO1 records">
@@ -414,11 +430,11 @@
         </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
             <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO1" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
                 <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
@@ -430,6 +446,12 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO2">
+        <div class="ao-sheet-tabs" role="tablist">
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+        </div>
         <div class="ao-table-filters" aria-label="AO2 table filters">
           <label class="ao-table-search">
             <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO2 records">
@@ -452,11 +474,11 @@
         </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
             <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO2" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
                 <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
@@ -468,6 +490,12 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO3">
+        <div class="ao-sheet-tabs" role="tablist">
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+        </div>
         <div class="ao-table-filters" aria-label="AO3 table filters">
           <label class="ao-table-search">
             <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO3 records">
@@ -490,11 +518,11 @@
         </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
             <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO3" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
                 <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
@@ -506,6 +534,12 @@
       </section>
 
       <section class="ao-view" data-ao-view="MasterFile">
+        <div class="ao-sheet-tabs" role="tablist">
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+        </div>
         <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
           <label class="ao-table-search">
             <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
@@ -537,11 +571,11 @@
         </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
+            <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
             <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="MasterFile" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
                 <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
@@ -551,6 +585,7 @@
           </table>
         </div>
       </section>
+    </main>
     </main>
 
     <div class="modal-backdrop" id="tableDashboardModal" hidden>
