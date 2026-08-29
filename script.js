@@ -580,11 +580,9 @@ const configureStatusDropdown = (employer = null) => {
   statusSelect.innerHTML = '';
 
   if (!employer || !employer.id) {
-    // New Employer: Only 1st SOA Served or Settled or Not Yet Registered
+    // New Employer: strictly 1st SOA Served
     statusSelect.innerHTML = `
       <option value="1st SOA Served" selected>1st SOA Served (Initial Notice)</option>
-      <option value="Settled">Settled</option>
-      <option value="Not Yet Registered">Not Yet Registered</option>
     `;
     return;
   }
@@ -593,40 +591,30 @@ const configureStatusDropdown = (employer = null) => {
   const has1stSoa = Boolean(employer.soa_date || employer.billing_date);
   const has2ndSoa = Boolean(employer.soa2_date);
   const has3rdSoa = Boolean(employer.soa3_date);
-  const isSettled = String(employer.status || '').toLowerCase() === 'settled';
   const isLegal = String(employer.status || '').toLowerCase().includes('legal') || Boolean(employer.legal_referral_date);
 
   const options = [];
 
-  if (isSettled) {
-    options.push({ value: 'Settled', label: '✅ Settled', selected: true });
-    options.push({ value: '1st SOA Served', label: '1st SOA Served' });
-  } else if (isLegal) {
+  if (isLegal) {
     options.push({ value: 'Referred to Legal', label: '⚖️ Referred to Legal (Current)', selected: true });
-    options.push({ value: 'Settled', label: '✅ Settled' });
   } else if (has3rdSoa) {
     options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Current)', selected: employer.status === '3rd SOA Served' });
     options.push({ value: 'Referred to Legal', label: '⚖️ Forward to Legal / Legal Action' });
-    options.push({ value: 'Settled', label: '✅ Settled' });
   } else if (has2ndSoa) {
     options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Current)', selected: employer.status === '2nd SOA Served' });
     options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Next Notice)' });
-    options.push({ value: 'Settled', label: '✅ Settled' });
   } else if (has1stSoa) {
     options.push({ value: '1st SOA Served', label: '1st SOA Served (Current)', selected: employer.status === '1st SOA Served' });
     options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Next Notice)' });
-    options.push({ value: 'Settled', label: '✅ Settled' });
   } else {
     options.push({ value: '1st SOA Served', label: '1st SOA Served', selected: true });
-    options.push({ value: 'Settled', label: 'Settled' });
-    options.push({ value: 'Not Yet Registered', label: 'Not Yet Registered' });
   }
 
   statusSelect.innerHTML = options.map((opt) => `
     <option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.label}</option>
   `).join('');
 
-  if (employer.status) {
+  if (employer.status && [...statusSelect.options].some((o) => o.value === employer.status)) {
     statusSelect.value = employer.status;
   }
 };
