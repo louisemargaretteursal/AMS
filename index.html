@@ -109,6 +109,11 @@
       <div class="nav-item" data-nav-view="EmployerForm">
         <button class="nav-btn" aria-label="Open data form" title="Data form">DATA FORM</button>
       </div>
+      <div class="nav-item soa-notification-item">
+        <button class="nav-btn soa-bell-btn" id="soaNotificationBell" type="button" aria-label="15-Day SOA Reminders" title="15-Day SOA Reminders">
+          🔔 REMINDERS <span class="soa-badge" id="soaBadgeCount" hidden>0</span>
+        </button>
+      </div>
       <div class="header-session sidebar-session">
         <span id="loggedInUser"></span>
         <button id="logoutButton" type="button">Sign out</button>
@@ -116,6 +121,19 @@
     </nav>
 
     <div class="database-notification" id="databaseNotification" role="status" aria-live="polite" hidden></div>
+
+    <div class="modal-backdrop" id="soaReminderModal" hidden>
+      <section class="calendar-modal soa-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="soaReminderTitle">
+        <div class="calendar-modal-header">
+          <h2 id="soaReminderTitle">⚠️ 15-DAY SOA ACTION & FORWARDING REMINDERS</h2>
+          <button class="modal-close-btn" id="soaReminderClose" type="button" aria-label="Close reminders">&times;</button>
+        </div>
+        <div class="soa-reminder-content">
+          <p class="soa-reminder-desc">The following employers have reached or lapsed their <strong>15-day compliance period</strong>. Please review, forward records, and record the next SOA:</p>
+          <div class="soa-reminder-list" id="soaReminderList"></div>
+        </div>
+      </section>
+    </div>
 
     <div class="modal-backdrop" id="employerSuccessModal" hidden>
       <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="employerSuccessTitle">
@@ -201,12 +219,14 @@
           <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
           <label>Person Received:<input name="personReceived" type="text"></label>
           <label>Status:
-            <select name="status" required>
-              <option value="" selected disabled>Select status</option>
+            <select name="status" id="statusSelect">
+              <option value="1st SOA Served" selected>1st SOA Served</option>
+              <option value="2nd SOA Served">2nd SOA Served</option>
+              <option value="3rd SOA Served">3rd SOA Served</option>
               <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registed">Registed</option>
+              <option value="Referred to Legal">Referred to Legal</option>
               <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Unsettled">Unsettled</option>
             </select>
           </label>
           <button class="employer-submit-btn" type="submit">SUBMIT</button>
@@ -418,13 +438,15 @@
           </label>
           <label>
             <span class="visually-hidden">Filter by status</span>
-            <select data-filter-status aria-label="Filter AO1 by status">
+            <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
+              <option value="1st SOA Served">1st SOA Served</option>
+              <option value="2nd SOA Served">2nd SOA Served</option>
+              <option value="3rd SOA Served">3rd SOA Served</option>
+              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
               <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registered">Registered</option>
+              <option value="Referred to Legal">Referred to Legal</option>
               <option value="Not Yet Registered">Not Yet Registered</option>
-              <option value="Due Date">Due Date</option>
             </select>
           </label>
         </div>
@@ -462,13 +484,15 @@
           </label>
           <label>
             <span class="visually-hidden">Filter by status</span>
-            <select data-filter-status aria-label="Filter AO2 by status">
+            <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
+              <option value="1st SOA Served">1st SOA Served</option>
+              <option value="2nd SOA Served">2nd SOA Served</option>
+              <option value="3rd SOA Served">3rd SOA Served</option>
+              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
               <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registered">Registered</option>
+              <option value="Referred to Legal">Referred to Legal</option>
               <option value="Not Yet Registered">Not Yet Registered</option>
-              <option value="Due Date">Due Date</option>
             </select>
           </label>
         </div>
@@ -506,13 +530,15 @@
           </label>
           <label>
             <span class="visually-hidden">Filter by status</span>
-            <select data-filter-status aria-label="Filter AO3 by status">
+            <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
+              <option value="1st SOA Served">1st SOA Served</option>
+              <option value="2nd SOA Served">2nd SOA Served</option>
+              <option value="3rd SOA Served">3rd SOA Served</option>
+              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
               <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registered">Registered</option>
+              <option value="Referred to Legal">Referred to Legal</option>
               <option value="Not Yet Registered">Not Yet Registered</option>
-              <option value="Due Date">Due Date</option>
             </select>
           </label>
         </div>
@@ -559,13 +585,15 @@
           </label>
           <label>
             <span class="visually-hidden">Filter by status</span>
-            <select data-filter-status aria-label="Filter MasterFile by status">
+            <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
+              <option value="1st SOA Served">1st SOA Served</option>
+              <option value="2nd SOA Served">2nd SOA Served</option>
+              <option value="3rd SOA Served">3rd SOA Served</option>
+              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
               <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registered">Registered</option>
+              <option value="Referred to Legal">Referred to Legal</option>
               <option value="Not Yet Registered">Not Yet Registered</option>
-              <option value="Due Date">Due Date</option>
             </select>
           </label>
         </div>

@@ -272,16 +272,16 @@ app.get('/api/employer-summary', async (request, response) => {
 
     const summary = ['AO1', 'AO2', 'AO3'].reduce((result, viewName) => {
       const employers = (data || []).filter((employer) => employer.assigned_view === viewName);
-      const settled = employers.filter((employer) => employer.status?.toLowerCase() === 'settled').length;
-      const unsettled = employers.filter((employer) => employer.status?.toLowerCase() === 'unsettled').length;
-      const registered = employers.filter((employer) => ['registed', 'registered'].includes(employer.status?.toLowerCase())).length;
-      const unregistered = employers.filter((employer) => ['not yet registered', 'unregistered'].includes(employer.status?.toLowerCase())).length;
+      const settled = employers.filter((employer) => (employer.status || '').toLowerCase().includes('settled')).length;
+      const unsettled = employers.filter((employer) => !(employer.status || '').toLowerCase().includes('settled')).length;
+      const unregistered = employers.filter((employer) => ['not yet registered', 'unregistered'].includes((employer.status || '').toLowerCase())).length;
+      const registered = employers.length - unregistered;
       const billed = employers.reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
       const settledAmount = employers
-        .filter((employer) => employer.status?.toLowerCase() === 'settled')
+        .filter((employer) => (employer.status || '').toLowerCase().includes('settled'))
         .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
       const unsettledAmount = employers
-        .filter((employer) => employer.status?.toLowerCase() === 'unsettled')
+        .filter((employer) => !(employer.status || '').toLowerCase().includes('settled'))
         .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
 
       result[viewName] = {

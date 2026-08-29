@@ -1918,3 +1918,227 @@ body {
   display: none !important;
 }
 
+/* ==========================================================================
+   15-Day SOA Notification Bell & Badge
+   ========================================================================== */
+.soa-notification-item {
+  position: relative;
+}
+
+.soa-bell-btn {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3 !important;
+  font-weight: 700 !important;
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.soa-bell-btn:hover {
+  background: #ffe4e6 !important;
+  color: #9f1239 !important;
+  transform: translateY(-1px);
+}
+
+.soa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #e11d48;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  animation: pulse-badge 1.8s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.5); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 4px rgba(225, 29, 72, 0); }
+}
+
+/* ==========================================================================
+   SOA Action Reminders Modal & List
+   ========================================================================== */
+.soa-reminder-modal {
+  width: min(820px, 95vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.soa-reminder-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.soa-reminder-desc {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.soa-reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.soa-reminder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #fecdd3;
+  border-left: 5px solid #e11d48;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.soa-reminder-item.warning {
+  border-color: #fde68a;
+  border-left-color: #f59e0b;
+}
+
+.soa-reminder-info {
+  flex: 1;
+}
+
+.soa-reminder-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.soa-reminder-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.soa-reminder-number {
+  font-size: 12px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.soa-reminder-stage {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.soa-reminder-days {
+  font-size: 11px;
+  font-weight: 700;
+  color: #be123c;
+}
+
+.soa-reminder-days.warning {
+  color: #b45309;
+}
+
+.soa-reminder-action-btn {
+  padding: 8px 14px;
+  background: #1e3a8a;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.soa-reminder-action-btn:hover {
+  background: #172554;
+  transform: translateY(-1px);
+}
+
+.soa-empty-message {
+  padding: 30px;
+  text-align: center;
+  color: #059669;
+  font-weight: 600;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+}
+
+/* ==========================================================================
+   Status Column Badges & Indicators
+   ========================================================================== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge-1st-soa {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.status-badge-2nd-soa {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.status-badge-3rd-soa {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
+.status-badge-lapsed {
+  background: #ffe4e6;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
+  font-weight: 700;
+}
+
+.status-badge-settled {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.status-badge-legal {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+.status-badge-pending {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+tr.is-due-date {
+  background-color: #fff1f2 !important;
+}
+
+tr.is-due-date:hover {
+  background-color: #ffe4e6 !important;
+}
+
+

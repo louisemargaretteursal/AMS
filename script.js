@@ -489,23 +489,160 @@ const formatAmount = (value) => {
     : '';
 };
 const isAmountMetric = (name) => ['billed', 'settledAmount', 'unsettledAmount'].includes(name);
-const BILLING_DUE_DAYS = 15;
+const SOA_COMPLIANCE_DAYS = 15;
 
-const getBillingDueDate = (billingDate) => {
-  if (!billingDate) return null;
+const getEmployerSoaInfo = (employer) => {
+  const status = String(employer?.status || '').trim();
+  if (['settled'].includes(status.toLowerCase())) {
+    return { stage: 'Settled', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'None' };
+  }
+  if (['referred to legal', 'legal'].includes(status.toLowerCase())) {
+    return { stage: 'Referred to Legal', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'Legal Case in Progress' };
+  }
 
-  const dueDate = new Date(`${billingDate}T00:00:00`);
-  if (Number.isNaN(dueDate.getTime())) return null;
-  dueDate.setDate(dueDate.getDate() + BILLING_DUE_DAYS);
-  return dueDate;
+  let activeStage = '1st SOA';
+  let servedDate = employer?.soa_date || employer?.billing_date;
+  let nextAction = 'Forward records & Serve 2nd SOA';
+  let targetField = 'soa2Date';
+
+  if (employer?.soa3_date) {
+    activeStage = '3rd SOA';
+    servedDate = employer.soa3_date;
+    nextAction = 'Forward to Legal / Atty.';
+    targetField = 'legalReferralDate';
+  } else if (employer?.soa2_date) {
+    activeStage = '2nd SOA';
+    servedDate = employer.soa2_date;
+    nextAction = 'Forward records & Serve 3rd SOA';
+    targetField = 'soa3Date';
+  } else if (employer?.soa_date) {
+    activeStage = '1st SOA';
+    servedDate = employer.soa_date;
+    nextAction = 'Forward records & Serve 2nd SOA';
+    targetField = 'soa2Date';
+  } else if (employer?.billing_date) {
+    activeStage = 'Billing';
+    servedDate = employer.billing_date;
+    nextAction = 'Serve 1st SOA';
+    targetField = 'soaDate';
+  }
+
+  if (!servedDate) {
+    return { stage: status || 'Not Yet Served', isDue: false, isLapsed: false, daysRemaining: null, nextAction: 'Serve 1st SOA', targetField };
+  }
+
+  const served = new Date(`${servedDate}T00:00:00`);
+  if (Number.isNaN(served.getTime())) {
+    return { stage: activeStage, isDue: false, isLapsed: false, daysRemaining: null, nextAction, targetField };
+  }
+
+  const dueDate = new Date(served);
+  dueDate.setDate(dueDate.getDate() + SOA_COMPLIANCE_DAYS);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const isLapsed = diffDays <= 0;
+  const isDueSoon = diffDays >= 0 && diffDays <= 1; // 24 hours notice or due today
+
+  return {
+    stage: `${activeStage} Served`,
+    servedDate,
+    dueDate: dueDate.toISOString().split('T')[0],
+    daysRemaining: diffDays,
+    isLapsed,
+    isDueSoon,
+    isDue: isLapsed || isDueSoon,
+    nextAction,
+    targetField,
+  };
 };
 
 const isBillingDue = (billingDate, today = new Date()) => {
-  const dueDate = getBillingDueDate(billingDate);
-  if (!dueDate) return false;
-
+  if (!billingDate) return false;
+  const dueDate = new Date(`${billingDate}T00:00:00`);
+  if (Number.isNaN(dueDate.getTime())) return false;
+  dueDate.setDate(dueDate.getDate() + SOA_COMPLIANCE_DAYS);
   const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   return currentDate >= dueDate;
+};
+
+const updateSoaReminders = () => {
+  const badge = document.getElementById('soaBadgeCount');
+  const reminderList = document.getElementById('soaReminderList');
+  if (!badge) return;
+
+  const officerView = getOfficerView(currentUser?.role);
+  const selector = officerView
+    ? `[data-ao-view="${officerView}"] .ao-table tbody tr[data-employer-id]`
+    : '.ao-table tbody tr[data-employer-id]';
+
+  const rows = [...document.querySelectorAll(selector)];
+  const seenIds = new Set();
+  const dueEmployers = [];
+
+  rows.forEach((row) => {
+    const employer = JSON.parse(row.dataset.employer || '{}');
+    if (!employer.id || seenIds.has(employer.id)) return;
+    seenIds.add(employer.id);
+
+    const soaInfo = getEmployerSoaInfo(employer);
+    if (soaInfo.isDue) {
+      dueEmployers.push({ employer, soaInfo, row });
+    }
+  });
+
+  badge.textContent = dueEmployers.length;
+  badge.hidden = dueEmployers.length === 0;
+
+  if (reminderList) {
+    if (dueEmployers.length === 0) {
+      reminderList.innerHTML = '<div class="soa-empty-message">🎉 Great job! All SOA compliance periods are up to date. No pending follow-ups required.</div>';
+    } else {
+      reminderList.innerHTML = dueEmployers.map(({ employer, soaInfo }) => `
+        <div class="soa-reminder-item ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
+          <div class="soa-reminder-info">
+            <div class="soa-reminder-header">
+              <span class="soa-reminder-name">${employer.employer_name}</span>
+              <span class="soa-reminder-number">${employer.employer_number}</span>
+              <span class="payer-badge payer-badge-ip">${employer.assigned_view || 'AO'}</span>
+            </div>
+            <div class="soa-reminder-stage">
+              <strong>${soaInfo.stage}</strong> on ${soaInfo.servedDate || 'N/A'} (15-day due date: ${soaInfo.dueDate || 'N/A'})
+            </div>
+            <div class="soa-reminder-days ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
+              ${soaInfo.isLapsed ? `🚨 15-day period lapsed by ${Math.abs(soaInfo.daysRemaining)} days!` : '⚠️ 24 Hours Notice: 15-day deadline is today!'}
+              &bull; <em>Action required: ${soaInfo.nextAction}</em>
+            </div>
+          </div>
+          <button class="soa-reminder-action-btn" type="button" data-soa-edit-id="${employer.id}" data-soa-field="${soaInfo.targetField}">
+            Edit &amp; Update Record
+          </button>
+        </div>
+      `).join('');
+
+      reminderList.querySelectorAll('[data-soa-edit-id]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const empId = button.dataset.soaEditId;
+          const targetField = button.dataset.soaField;
+          const matchingRow = document.querySelector(`tr[data-employer-id="${empId}"]`);
+          const modal = document.getElementById('soaReminderModal');
+          if (modal) modal.hidden = true;
+          if (matchingRow) {
+            openEmployerEdit(matchingRow).then(() => {
+              if (targetField && employerForm.elements[targetField]) {
+                employerForm.elements[targetField].focus();
+                employerForm.elements[targetField].style.outline = '2px solid #e11d48';
+                setTimeout(() => { employerForm.elements[targetField].style.outline = ''; }, 3000);
+              }
+            });
+          }
+        });
+      });
+    }
+  }
 };
 
 const showDatabaseDueNotification = (viewName) => {
@@ -513,8 +650,11 @@ const showDatabaseDueNotification = (viewName) => {
   if (!view || !databaseNotification) return;
 
   const dueCount = [...view.querySelectorAll('tbody tr[data-employer-id]')]
-    .filter((row) => isBillingDue(row.cells[13]?.dataset.date)).length;
-  databaseNotification.textContent = `${dueCount} due ${dueCount === 1 ? 'record' : 'records'} found.`;
+    .filter((row) => {
+      const emp = JSON.parse(row.dataset.employer || '{}');
+      return getEmployerSoaInfo(emp).isDue;
+    }).length;
+  databaseNotification.textContent = `${dueCount} SOA follow-up ${dueCount === 1 ? 'record' : 'records'} require attention.`;
   databaseNotification.hidden = false;
   clearTimeout(databaseNotificationTimer);
   databaseNotificationTimer = window.setTimeout(() => {
@@ -539,16 +679,26 @@ const filterAoTable = (viewName) => {
   let spCount = 0;
 
   rows.forEach((row) => {
-    const payerType = row.dataset.payerType || 'Interim Payer';
+    const employer = JSON.parse(row.dataset.employer || '{}');
+    const payerType = row.dataset.payerType || employer.payer_type || 'Interim Payer';
     if (payerType === 'Regular Payer') rpCount += 1;
     else if (payerType === 'Special Payer') spCount += 1;
     else ipCount += 1;
 
+    const soaInfo = getEmployerSoaInfo(employer);
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
     const matchesDate = !selectedDate || row.cells[13]?.dataset.date === selectedDate;
-    const isDueDate = isBillingDue(row.cells[13]?.dataset.date);
-    const matchesStatus = !selectedStatus
-      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[24]?.textContent || '') === selectedStatus);
+    
+    let matchesStatus = true;
+    if (selectedStatus) {
+      if (selectedStatus === 'due date' || selectedStatus === 'due for 2nd soa') {
+        matchesStatus = soaInfo.isDue;
+      } else {
+        matchesStatus = normalizeStatus(row.cells[24]?.textContent || employer.status || '') === selectedStatus
+          || normalizeStatus(soaInfo.stage).includes(selectedStatus);
+      }
+    }
+
     const matchesView = !selectedView || row.dataset.assignedView === selectedView;
 
     let matchesSheet = true;
@@ -568,19 +718,21 @@ const filterAoTable = (viewName) => {
   if (countRP) countRP.textContent = rpCount;
   if (countIP) countIP.textContent = ipCount;
   if (countSP) countSP.textContent = spCount;
+
+  updateSoaReminders();
 };
 
 const getDashboardMetrics = (values) => {
   const total = values.length;
-  const settled = values.filter((row) => (row[24] || '').toLowerCase() === 'settled').length;
-  const unsettled = values.filter((row) => (row[24] || '').toLowerCase() === 'unsettled').length;
+  const settled = values.filter((row) => (row[24] || '').toLowerCase().includes('settled')).length;
+  const unsettled = values.filter((row) => !(row[24] || '').toLowerCase().includes('settled')).length;
   const billed = values.reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const settledAmount = values.filter((row) => (row[24] || '').toLowerCase() === 'settled')
+  const settledAmount = values.filter((row) => (row[24] || '').toLowerCase().includes('settled'))
     .reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const unsettledAmount = values.filter((row) => (row[24] || '').toLowerCase() === 'unsettled')
+  const unsettledAmount = values.filter((row) => !(row[24] || '').toLowerCase().includes('settled'))
     .reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const registered = values.filter((row) => ['registed', 'registered'].includes((row[24] || '').toLowerCase())).length;
-  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes((row[24] || '').toLowerCase())).length;
+  const unregistered = values.filter((row) => (row[24] || '').toLowerCase().includes('not yet registered')).length;
+  const registered = total - unregistered;
 
   return {
     total,
@@ -1015,10 +1167,39 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   const badgeClass = payerType === 'Regular Payer' ? 'payer-badge-rp' : payerType === 'Special Payer' ? 'payer-badge-sp' : 'payer-badge-ip';
   const badgeCode = payerType === 'Regular Payer' ? 'RP' : payerType === 'Special Payer' ? 'SP' : 'IP';
 
+  const empData = employer || {
+    id: employerId,
+    assigned_view: assignedView,
+    employer_number: rowValues[0],
+    employer_name: rowValues[1],
+    payer_type: payerType,
+    billing_date: rowValues[13],
+    soa_date: rowValues[14],
+    soa2_date: rowValues[15],
+    soa3_date: rowValues[16],
+    status: rowValues[24],
+  };
+
+  const soaInfo = getEmployerSoaInfo(empData);
+
   targetRow.replaceChildren(...rowValues.map((value, cellIndex) => {
     const cell = document.createElement('td');
     if (cellIndex === 2) {
       cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerType}</span>`;
+    } else if (cellIndex === 24) {
+      if (soaInfo.stage === 'Settled') {
+        cell.innerHTML = '<span class="status-badge status-badge-settled">✅ Settled</span>';
+      } else if (soaInfo.stage === 'Referred to Legal') {
+        cell.innerHTML = '<span class="status-badge status-badge-legal">⚖️ Referred to Legal</span>';
+      } else if (soaInfo.isLapsed) {
+        cell.innerHTML = `<span class="status-badge status-badge-lapsed" title="${soaInfo.nextAction}">🚨 ${soaInfo.stage} (${Math.abs(soaInfo.daysRemaining)}d lapsed)</span>`;
+      } else if (soaInfo.isDueSoon) {
+        cell.innerHTML = `<span class="status-badge status-badge-2nd-soa" title="${soaInfo.nextAction}">⚠️ ${soaInfo.stage} (Due in 24h)</span>`;
+      } else if (soaInfo.daysRemaining !== null) {
+        cell.innerHTML = `<span class="status-badge status-badge-1st-soa">⏳ ${soaInfo.stage} (${soaInfo.daysRemaining}d left)</span>`;
+      } else {
+        cell.innerHTML = `<span class="status-badge status-badge-pending">${value || '1st SOA Served'}</span>`;
+      }
     } else {
       cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
         ? formatAmount(value)
@@ -1026,13 +1207,14 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
     }
     return cell;
   }));
+
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
   targetRow.dataset.payerType = payerType;
   const billingDateCell = targetRow.cells[13];
   if (billingDateCell) billingDateCell.dataset.date = rowValues[13] || '';
   if (employer) targetRow.dataset.employer = JSON.stringify(employer);
-  targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[13]));
+  targetRow.classList.toggle('is-due-date', soaInfo.isDue);
   filterAoTable(viewName);
 
   return true;
@@ -1472,6 +1654,55 @@ document.querySelectorAll('.ao-sheet-tab').forEach((tabButton) => {
 
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
   body.innerHTML = '<tr>'.concat('<td></td>'.repeat(26), '</tr>').repeat(21);
+});
+
+// SOA Reminders Bell and Modal Listeners
+const soaReminderModal = document.getElementById('soaReminderModal');
+const soaNotificationBell = document.getElementById('soaNotificationBell');
+const soaReminderClose = document.getElementById('soaReminderClose');
+
+if (soaNotificationBell) {
+  soaNotificationBell.addEventListener('click', () => {
+    updateSoaReminders();
+    if (soaReminderModal) soaReminderModal.hidden = false;
+  });
+}
+
+if (soaReminderClose) {
+  soaReminderClose.addEventListener('click', () => {
+    if (soaReminderModal) soaReminderModal.hidden = true;
+  });
+}
+
+if (soaReminderModal) {
+  soaReminderModal.addEventListener('click', (event) => {
+    if (event.target === soaReminderModal) soaReminderModal.hidden = true;
+  });
+}
+
+// Auto-advance Status dropdown when dates are entered
+employerForm.elements.soaDate?.addEventListener('change', () => {
+  if (employerForm.elements.soaDate.value && (!employerForm.elements.status.value || employerForm.elements.status.value === '1st SOA Served')) {
+    employerForm.elements.status.value = '1st SOA Served';
+  }
+});
+
+employerForm.elements.soa2Date?.addEventListener('change', () => {
+  if (employerForm.elements.soa2Date.value && (!employerForm.elements.status.value || employerForm.elements.status.value === '1st SOA Served')) {
+    employerForm.elements.status.value = '2nd SOA Served';
+  }
+});
+
+employerForm.elements.soa3Date?.addEventListener('change', () => {
+  if (employerForm.elements.soa3Date.value) {
+    employerForm.elements.status.value = '3rd SOA Served';
+  }
+});
+
+employerForm.elements.legalReferralDate?.addEventListener('change', () => {
+  if (employerForm.elements.legalReferralDate.value) {
+    employerForm.elements.status.value = 'Referred to Legal';
+  }
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {
