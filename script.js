@@ -1304,12 +1304,13 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
     if (cellIndex === 2) {
       cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerType}</span>`;
     } else if (cellIndex === 24) {
+      cell.className = 'td-status';
       if (soaInfo.stage === 'Settled') {
         cell.innerHTML = '<span class="status-badge status-badge-settled">✅ Settled</span>';
       } else if (soaInfo.stage === 'Referred to Legal') {
         cell.innerHTML = '<span class="status-badge status-badge-legal">⚖️ Referred to Legal</span>';
       } else if (soaInfo.isForwarded) {
-        cell.innerHTML = `<span class="status-badge status-badge-forwarded" title="Forwarded on ${soaInfo.forwardedDate || 'N/A'}">📤 ${soaInfo.stage} (Forwarded &bull; Awaiting ${soaInfo.nextStageCode})</span>`;
+        cell.innerHTML = `<span class="status-badge status-badge-forwarded" title="Forwarded on ${soaInfo.forwardedDate || 'N/A'} &bull; Awaiting ${soaInfo.nextStageCode}">📤 ${soaInfo.stage} (Forwarded)</span>`;
       } else if (soaInfo.isLapsed) {
         cell.innerHTML = `<span class="status-badge status-badge-lapsed" title="${soaInfo.nextAction}">🚨 ${soaInfo.stage} (${Math.abs(soaInfo.daysRemaining)}d lapsed)</span>`;
       } else if (soaInfo.isDueSoon) {
@@ -1320,6 +1321,7 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
         cell.innerHTML = `<span class="status-badge status-badge-pending">${value || '1st SOA Served'}</span>`;
       }
     } else {
+      if (cellIndex === 25) cell.className = 'td-person';
       cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
         ? formatAmount(value)
         : value || '';
