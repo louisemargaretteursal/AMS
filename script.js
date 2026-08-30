@@ -1274,11 +1274,10 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   const targetBody = document.querySelector(`[data-ao-view="${viewName}"] .ao-table tbody`);
   if (!targetBody) return false;
 
-  let targetRow = targetBody.querySelector('tr:not(:has(td:not(:empty)))');
-
+  let targetRow = targetBody.querySelector(`tr[data-employer-id="${employerId}"]`);
   if (!targetRow) {
-    targetRow = document.createElement('tr');
-    targetBody.appendChild(targetRow);
+    targetRow = targetBody.querySelector('tr:not(:has(td:not(:empty)))') || document.createElement('tr');
+    if (!targetRow.parentElement) targetBody.appendChild(targetRow);
   }
 
   const payerType = (employer?.payer_type || rowValues[2] || 'Interim Payer').trim();
