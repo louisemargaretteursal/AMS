@@ -258,14 +258,19 @@ const orgChartContent = document.querySelector('.org-chart-content');
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
 const updateEmployerTotals = () => {
-  const principal = parseAmount(employerForm.elements.principal.value);
-  const penalty = parseAmount(employerForm.elements.penalty.value);
-  const interest = parseAmount(employerForm.elements.interest.value);
-  employerForm.elements.totalAmount.value = formatAmount(principal + penalty + interest);
-  const paymentPrincipal = parseAmount(employerForm.elements.paymentPrincipal.value);
-  const paymentInterest = parseAmount(employerForm.elements.paymentInterest.value);
-  const paymentPenalty = parseAmount(employerForm.elements.paymentPenalty.value);
-  employerForm.elements.paymentTotal.value = formatAmount(paymentPrincipal + paymentInterest + paymentPenalty);
+  if (!employerForm) return;
+  const principal = parseAmount(employerForm.elements.principal?.value);
+  const penalty = parseAmount(employerForm.elements.penalty?.value);
+  const interest = parseAmount(employerForm.elements.interest?.value);
+  if (employerForm.elements.totalAmount) {
+    employerForm.elements.totalAmount.value = formatAmount(principal + penalty + interest);
+  }
+  const paymentPrincipal = parseAmount(employerForm.elements.paymentPrincipal?.value);
+  const paymentInterest = parseAmount(employerForm.elements.paymentInterest?.value);
+  const paymentPenalty = parseAmount(employerForm.elements.paymentPenalty?.value);
+  if (employerForm.elements.paymentTotal) {
+    employerForm.elements.paymentTotal.value = formatAmount(paymentPrincipal + paymentInterest + paymentPenalty);
+  }
 };
 
 const amountFieldNames = [
@@ -280,20 +285,22 @@ const amountFieldNames = [
 ];
 
 amountFieldNames.forEach((fieldName) => {
-  employerForm.elements[fieldName].addEventListener('focus', (event) => {
+  const el = employerForm?.elements[fieldName];
+  if (!el) return;
+  el.addEventListener('focus', (event) => {
     event.target.value = event.target.value.replace(/,/g, '');
   });
-  employerForm.elements[fieldName].addEventListener('blur', (event) => {
+  el.addEventListener('blur', (event) => {
     event.target.value = formatAmount(event.target.value);
   });
 });
 
 ['principal', 'penalty', 'interest'].forEach((fieldName) => {
-  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotals);
+  employerForm?.elements[fieldName]?.addEventListener('input', updateEmployerTotals);
 });
 
 ['paymentPrincipal', 'paymentInterest', 'paymentPenalty'].forEach((fieldName) => {
-  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotals);
+  employerForm?.elements[fieldName]?.addEventListener('input', updateEmployerTotals);
 });
 
 const showCurrentDateNotification = () => {
