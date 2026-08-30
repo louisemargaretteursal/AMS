@@ -13,61 +13,60 @@
 <body>
   <section class="auth-screen" id="authScreen">
     <div class="auth-brand-panel">
-      <div class="auth-brand-content">
-        <span class="header-logo-window auth-logo-window">
-          <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
-        </span>
-        <h1>Social Security System</h1>
-        <p>Employer Encoding, Billing, & Settlement Monitoring System</p>
-        <span>Toledo City Branch</span>
-      </div>
+      <img class="auth-brand-image" src="login.jpg" alt="Social Security System - Sa SSS, Sigurado ang bukas.">
     </div>
     <div class="auth-form-panel">
       <div class="auth-card-shell">
         <form class="login-card" id="loginForm">
-          <h2>Sign in</h2>
-          <p class="login-intro">Enter your username and password to access your account.</p>
-          <label class="auth-field">
-            <span>Username</span>
-            <input id="username" name="username" type="text" autocomplete="username" required>
-          </label>
-          <label class="auth-field">
-            <span>Password</span>
-            <input id="password" name="password" type="password" autocomplete="current-password" required>
-          </label>
-          <p class="login-error" id="loginError" role="alert" hidden>Invalid username or password.</p>
-          <button class="login-submit" type="submit">Secure login</button>
-          <p class="login-note">Access is managed by the Social Security System - Toledo City Branch.</p>
-        </form>
-        <form class="login-card register-card" id="registerForm" hidden>
-          <p class="login-intro">Enter the information below to register a new account.</p>
-          <label class="auth-field">
-            <span>Full name</span>
-            <input name="fullName" type="text" autocomplete="name" required>
-          </label>
-          <label class="auth-field">
-            <span>Email</span>
-            <input name="email" type="email" autocomplete="email" required>
-          </label>
-          <label class="auth-field">
-            <span>Password (minimum 8 characters)</span>
-            <input name="registrationPassword" type="password" minlength="8" autocomplete="new-password" required>
-          </label>
-          <label class="auth-field">
-            <span>Confirm password</span>
-            <input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
-          </label>
-          <label class="auth-field">
-            <span>Address</span>
-            <textarea name="address" rows="3" required></textarea>
-          </label>
-          <label class="terms-field">
-            <input name="terms" type="checkbox" required>
-            <span>Check here to indicate that you have read and agree to the <a href="#terms">Terms &amp; Conditions</a> and <a href="#privacy">Privacy Policy</a>.</span>
-          </label>
-          <p class="register-error" id="registerError" role="alert" hidden></p>
-          <button class="login-submit" type="submit">Submit registration</button>
-          <p class="register-footer">Already have an account? <button id="returnToLogin" type="button">Login</button></p>
+          <div class="login-header-wrap">
+            <img class="login-sss-logo" src="logo.png" alt="SSS Logo">
+            <h1 class="login-brand-title">Social Security System</h1>
+            <p class="login-brand-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
+            <p class="login-brand-branch">Toledo City branch</p>
+            <div class="login-security-badge">
+              <span>Official Operations Portal &bull; Authorized Personnel</span>
+            </div>
+          </div>
+
+          <div class="login-form-body">
+            <p class="login-instruction">Sign in to your account.</p>
+
+            <div class="auth-input-group">
+              <label for="username">User ID</label>
+              <div class="auth-input-wrap">
+                <input id="username" name="username" type="text" autocomplete="username" placeholder="User ID" required>
+                <span class="auth-input-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="auth-input-group">
+              <label for="password">Password</label>
+              <div class="auth-input-wrap">
+                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+                <button type="button" class="auth-toggle-pwd" id="togglePasswordBtn" aria-label="Toggle password visibility" title="Show/Hide password">
+                  <svg id="pwdEyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <p class="login-error" id="loginError" role="alert" hidden></p>
+
+            <button class="login-submit" type="submit">Sign In</button>
+          </div>
+
+          <div class="login-footer-meta">
+            <p>&copy; 2026 Social Security System, Toledo City Branch</p>
+            <p>Terms of Service | Data Privacy Policy</p>
+          </div>
         </form>
       </div>
     </div>
@@ -78,7 +77,7 @@
     <!-- Header -->
     <header class="main-header">
       <span class="header-logo-window">
-        <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
+        <img class="header-logo-img" src="logo.png" alt="SSS logo" style="width: 50px; height: 50px; object-fit: contain;">
       </span>
       <h1 class="header-title">SOCIAL SECURITY SYSTEM</h1>
       <p class="header-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
@@ -114,7 +113,7 @@
       </div>
       <div class="nav-item soa-notification-item">
         <button class="nav-btn soa-bell-btn" id="soaNotificationBell" type="button" aria-label="15-Day SOA Reminders" title="15-Day SOA Reminders">
-          🔔 REMINDERS <span class="soa-badge" id="soaBadgeCount" hidden>0</span>
+          REMINDERS <span class="soa-badge" id="soaBadgeCount" hidden>0</span>
         </button>
       </div>
       <div class="header-session sidebar-session">
@@ -128,7 +127,7 @@
     <div class="modal-backdrop" id="soaReminderModal" hidden>
       <section class="calendar-modal soa-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="soaReminderTitle">
         <div class="calendar-modal-header">
-          <h2 id="soaReminderTitle">⚠️ 15-DAY SOA ACTION & FORWARDING REMINDERS</h2>
+          <h2 id="soaReminderTitle">15-DAY SOA ACTION &amp; FORWARDING REMINDERS</h2>
           <button class="modal-close-btn" id="soaReminderClose" type="button" aria-label="Close reminders">&times;</button>
         </div>
         <div class="soa-reminder-content">
@@ -156,127 +155,442 @@
     <main class="employer-form-page" id="employerFormView" hidden aria-live="polite">
       <section class="employer-modal" aria-labelledby="employerFormTitle">
         <div class="employer-modal-header">
-          <h2 id="employerFormTitle">Employer's Data Form</h2>
+          <div class="employer-modal-header-left">
+            <div>
+              <h2 id="employerFormTitle">Employer Data Form</h2>
+              <p class="modal-header-subtitle">Encode, assess, and manage employer billing stages</p>
+            </div>
+          </div>
           <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
         </div>
+
+        <!-- Form Section Tabs -->
+        <div class="employer-form-tabs" role="tablist">
+          <button class="form-tab-btn is-active" type="button" data-form-tab="tab-basic">
+            Basic Info
+          </button>
+          <button class="form-tab-btn" type="button" data-form-tab="tab-soa1">
+            1st SOA
+          </button>
+          <button class="form-tab-btn edit-only-tab" type="button" data-form-tab="tab-soa2">
+            2nd SOA
+          </button>
+          <button class="form-tab-btn edit-only-tab" type="button" data-form-tab="tab-soa3">
+            3rd SOA
+          </button>
+          <button class="form-tab-btn edit-only-tab" type="button" data-form-tab="tab-legal">
+            Legal &amp; Payments
+          </button>
+        </div>
+
         <form class="employer-form" id="employerForm">
           <input type="hidden" name="employerId" value="">
           <input type="hidden" name="assignedView" value="">
-          <label>Employer Number:<input name="employerNumber" type="text"></label>
-          <label>Employer Name:<input name="employerName" type="text"></label>
-          <label class="payer-type-field">Payer Type:
-            <select name="payerType" id="payerTypeSelect" required>
-              <option value="" disabled selected>Select payer type</option>
-              <option value="Regular Payer">Regular Payer (RP)</option>
-              <option value="Interim Payer">Interim Payer (IP)</option>
-              <option value="Special Payer">Special Payer (SP)</option>
-            </select>
-          </label>
           <input name="address" type="hidden">
-          <div class="address-fields">
-            <label>Address:<input name="addressLine1" type="text" autocomplete="address-line1"></label>
-            <label>Country:
-              <select name="addressCountry" autocomplete="country-name">
-                <option value="">Select country</option>
-                <option selected>Philippines</option>
-              </select>
-            </label>
-            <label>Province:
-              <select name="addressState" autocomplete="address-level1" disabled>
-                <option value="">Select country first</option>
-              </select>
-            </label>
-            <label>Municipality:
-              <select name="addressCity" autocomplete="address-level2" disabled>
-                <option value="">Select province first</option>
-              </select>
-            </label>
-            <label class="barangay-field" hidden>Barangay:
-              <select name="addressBarangay" autocomplete="address-line3" disabled>
-                <option value="">Select city first</option>
-              </select>
-            </label>
-            <label>Postal Code:<input name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Select city"></label>
+
+          <!-- TAB 1: BASIC INFORMATION -->
+          <div class="form-tab-pane is-active" id="tab-basic">
+            <div class="form-section-banner">
+              <h3>Employer Identification &amp; Address</h3>
+              <p>Core business profile, location, employee count, and compliance status.</p>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-control-wrap">
+                <label for="f_employerNumber">Employer Number <span class="req">*</span></label>
+                <input id="f_employerNumber" name="employerNumber" type="text" placeholder="00-0000000-0" required pattern="^\d{2}-\d{7}-\d{1}$" title="Format: XX-XXXXXXX-X (10 digits)">
+              </div>
+              <div class="form-control-wrap">
+                <label for="f_employerName">Employer / Business Name <span class="req">*</span></label>
+                <input id="f_employerName" name="employerName" type="text" placeholder="e.g. Acme Corporation" required>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-control-wrap">
+                <label for="payerTypeSelect">Payer Classification <span class="req">*</span></label>
+                <select name="payerType" id="payerTypeSelect" required>
+                  <option value="Regular Payer">Regular Payer (RP)</option>
+                  <option value="Interim Payer" selected>Interim Payer (IP)</option>
+                  <option value="Special Payer">Special Payer (SP)</option>
+                </select>
+              </div>
+              <div class="form-control-wrap">
+                <label for="f_employeeCount">Number of Employees (EEs) <span class="req">*</span></label>
+                <input id="f_employeeCount" name="employeeCount" type="number" min="1" placeholder="e.g. 10" required>
+              </div>
+            </div>
+
+            <div class="form-card-box address-fields">
+              <div class="form-card-title">Official Address &amp; Location Jurisdiction</div>
+              <div class="form-grid-1">
+                <div class="form-control-wrap">
+                  <label for="f_addressLine1">Street / Building / Sitio <span class="req">*</span></label>
+                  <input id="f_addressLine1" name="addressLine1" type="text" autocomplete="address-line1" placeholder="e.g. 123 Sikatuna St., Poblacion" required>
+                </div>
+              </div>
+              <div class="form-grid-4">
+                <div class="form-control-wrap">
+                  <label for="f_addressCountry">Country <span class="req">*</span></label>
+                  <select id="f_addressCountry" name="addressCountry" autocomplete="country-name" required>
+                    <option value="">Select country</option>
+                    <option selected>Philippines</option>
+                  </select>
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_addressState">Province <span class="req">*</span></label>
+                  <select id="f_addressState" name="addressState" autocomplete="address-level1" required>
+                    <option value="">Select country first</option>
+                  </select>
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_addressCity">Municipality / City <span class="req">*</span></label>
+                  <select id="f_addressCity" name="addressCity" autocomplete="address-level2" required>
+                    <option value="">Select province first</option>
+                  </select>
+                </div>
+                <div class="form-control-wrap barangay-field" hidden>
+                  <label for="f_addressBarangay">Barangay <span class="req">*</span></label>
+                  <select id="f_addressBarangay" name="addressBarangay" autocomplete="address-line3">
+                    <option value="">Select city first</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grid-2" style="margin-top: 8px;">
+                <div class="form-control-wrap">
+                  <label for="f_addressPostalCode">Postal Code <span class="req">*</span></label>
+                  <input id="f_addressPostalCode" name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Select city" required>
+                </div>
+                <div class="form-control-wrap">
+                  <label for="statusSelect">Account Lifecycle Status <span class="req">*</span></label>
+                  <select name="status" id="statusSelect" required>
+                    <option value="1st SOA Served" selected>1st SOA Served</option>
+                    <option value="2nd SOA Served">2nd SOA Served</option>
+                    <option value="3rd SOA Served">3rd SOA Served</option>
+                    <option value="Referred to Legal">Referred to Legal</option>
+                    <option value="Settled">Settled</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
-          <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
-          <div class="collectibles-fields-group" id="collectiblesFieldsGroup">
-            <label>Principal:<input name="principal" type="text" inputmode="decimal"></label>
-            <label>Penalty:<input name="penalty" type="text" inputmode="decimal"></label>
-            <label>Interest:<input name="interest" type="text" inputmode="decimal"></label>
-            <label>Total:<input name="totalAmount" type="text" inputmode="decimal" disabled></label>
+
+          <!-- TAB 2: 1ST SOA STAGE -->
+          <div class="form-tab-pane" id="tab-soa1">
+            <div class="form-section-banner">
+              <h3>1st Statement of Account (Initial Assessment)</h3>
+              <p>Initial delinquency computation and serving receipt for newly served employers.</p>
+            </div>
+
+            <div class="collectibles-fields-group" id="collectiblesFieldsGroup">
+              <div class="form-card-box">
+                <div class="form-card-title">1st SOA Delinquency Assessment (₱)</div>
+                <div class="form-grid-3">
+                  <div class="form-control-wrap">
+                    <label for="f_principal">Principal (₱)</label>
+                    <input id="f_principal" name="principal" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_penalty">Penalty (₱)</label>
+                    <input id="f_penalty" name="penalty" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_interest">Interest (₱)</label>
+                    <input id="f_interest" name="interest" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="total-computed-box">
+                  <span class="total-label">1st SOA Total Collectible:</span>
+                  <input class="total-input-display" id="f_totalAmount" name="totalAmount" type="text" inputmode="decimal" readonly value="0.00">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">1st SOA Service &amp; Acknowledgement</div>
+              <div class="form-grid-2">
+                <div class="form-control-wrap">
+                  <label for="f_soaDate">Date 1st SOA Served</label>
+                  <input id="f_soaDate" name="soaDate" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_personReceived">Person Received (1st SOA)</label>
+                  <input id="f_personReceived" name="personReceived" type="text" placeholder="e.g. HR Officer / Manager">
+                </div>
+              </div>
+            </div>
           </div>
-          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="text" inputmode="decimal"></label>
-          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="text" inputmode="decimal"></label>
-          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="text" inputmode="decimal"></label>
-          <label class="edit-only">Payment Total:<input name="paymentTotal" type="text" inputmode="decimal" disabled></label>
-          <label>SOA Date Served:<input name="soaDate" type="date"></label>
-          <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
-          <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
-          <label class="edit-only">Date 3rd SOA (Served):<input name="soa3Date" type="date"></label>
-          <label>Date of Coverage:<input name="coverageDate" type="date"></label>
-          <label class="edit-only">Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
-          <label class="edit-only">Demand Letter Date:<input name="demandLetterDate" type="date"></label>
-          <label class="edit-only">Demand Letter Received Date:<input name="demandLetterReceivedDate" type="date"></label>
-          <label class="edit-only">Handling Lawyer:<input name="handlingLawyer" type="text"></label>
-          <label class="edit-only">Docket #:<input name="docketNumber" type="text"></label>
-          <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
-          <label>Person Received:<input name="personReceived" type="text"></label>
-          <label>Status:
-            <select name="status" id="statusSelect">
-              <option value="1st SOA Served" selected>1st SOA Served</option>
-              <option value="2nd SOA Served">2nd SOA Served</option>
-              <option value="3rd SOA Served">3rd SOA Served</option>
-              <option value="Referred to Legal">Referred to Legal</option>
-            </select>
-          </label>
-          <button class="employer-submit-btn" type="submit">SUBMIT</button>
+
+          <!-- TAB 3: 2ND SOA STAGE (EDIT MODE) -->
+          <div class="form-tab-pane" id="tab-soa2">
+            <div class="form-section-banner">
+              <h3>2nd Statement of Account (Escalation Stage 2)</h3>
+              <p>Updated billing assessment served after 15 days of non-compliance on 1st SOA.</p>
+            </div>
+
+            <div class="collectibles-fields-group" id="soa2AssessmentGroup">
+              <div class="form-card-box">
+                <div class="form-card-title">2nd SOA Updated Delinquency Assessment (₱)</div>
+                <div class="form-grid-3">
+                  <div class="form-control-wrap">
+                    <label for="f_soa2Principal">2nd SOA Principal (₱)</label>
+                    <input id="f_soa2Principal" name="soa2Principal" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_soa2Penalty">2nd SOA Penalty (₱)</label>
+                    <input id="f_soa2Penalty" name="soa2Penalty" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_soa2Interest">2nd SOA Interest (₱)</label>
+                    <input id="f_soa2Interest" name="soa2Interest" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="total-computed-box stage-2">
+                  <span class="total-label">2nd SOA Total Collectible:</span>
+                  <input class="total-input-display" id="f_soa2Total" name="soa2Total" type="text" inputmode="decimal" readonly value="0.00">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">2nd SOA Service &amp; Acknowledgement</div>
+              <div class="form-grid-2">
+                <div class="form-control-wrap">
+                  <label for="f_soa2Date">Date 2nd SOA Served</label>
+                  <input id="f_soa2Date" name="soa2Date" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_soa2PersonReceived">Person Received (2nd SOA)</label>
+                  <input id="f_soa2PersonReceived" name="soa2PersonReceived" type="text" placeholder="e.g. Authorized recipient">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: 3RD SOA STAGE (EDIT MODE) -->
+          <div class="form-tab-pane" id="tab-soa3">
+            <div class="form-section-banner">
+              <h3>3rd Statement of Account (Final Notice Prior to Legal)</h3>
+              <p>Final demand assessment served after 15 days of non-compliance on 2nd SOA.</p>
+            </div>
+
+            <div class="collectibles-fields-group" id="soa3AssessmentGroup">
+              <div class="form-card-box">
+                <div class="form-card-title">3rd SOA Final Assessment (₱)</div>
+                <div class="form-grid-3">
+                  <div class="form-control-wrap">
+                    <label for="f_soa3Principal">3rd SOA Principal (₱)</label>
+                    <input id="f_soa3Principal" name="soa3Principal" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_soa3Penalty">3rd SOA Penalty (₱)</label>
+                    <input id="f_soa3Penalty" name="soa3Penalty" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div class="form-control-wrap">
+                    <label for="f_soa3Interest">3rd SOA Interest (₱)</label>
+                    <input id="f_soa3Interest" name="soa3Interest" type="text" inputmode="decimal" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="total-computed-box stage-3">
+                  <span class="total-label">3rd SOA Total Collectible:</span>
+                  <input class="total-input-display" id="f_soa3Total" name="soa3Total" type="text" inputmode="decimal" readonly value="0.00">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">3rd SOA Service &amp; Acknowledgement</div>
+              <div class="form-grid-2">
+                <div class="form-control-wrap">
+                  <label for="f_soa3Date">Date 3rd SOA Served</label>
+                  <input id="f_soa3Date" name="soa3Date" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_soa3PersonReceived">Person Received (3rd SOA)</label>
+                  <input id="f_soa3PersonReceived" name="soa3PersonReceived" type="text" placeholder="e.g. Authorized recipient">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: LEGAL & PAYMENTS -->
+          <div class="form-tab-pane" id="tab-legal">
+            <div class="form-section-banner">
+              <h3>Final Billing Notice, Legal Referral &amp; Payments</h3>
+              <p>Consolidated final billing service, legal endorsement, litigation docketing, and collections received.</p>
+            </div>
+
+            <div class="form-card-box highlight-billing-box">
+              <div class="form-card-title">FINAL CONSOLIDATED BILLING NOTICE (BILLING SERVED)</div>
+              <p style="font-size: 11.5px; color: #475569; margin: 0 0 10px;">Official final billing demand served after all SOA compliance periods have elapsed prior to legal action.</p>
+              <div class="form-grid-2">
+                <div class="form-control-wrap">
+                  <label for="f_billingDate">Date Final Billing Served</label>
+                  <input id="f_billingDate" name="billingDate" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_billingPersonReceived">Person Received (Final Billing)</label>
+                  <input id="f_billingPersonReceived" name="billingPersonReceived" type="text" placeholder="e.g. Authorized Executive / Owner">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">Actual Payments Collected (₱)</div>
+              <div class="form-grid-3">
+                <div class="form-control-wrap">
+                  <label for="f_paymentPrincipal">Payment Principal (₱)</label>
+                  <input id="f_paymentPrincipal" name="paymentPrincipal" type="text" inputmode="decimal" placeholder="0.00">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_paymentPenalty">Payment Penalty (₱)</label>
+                  <input id="f_paymentPenalty" name="paymentPenalty" type="text" inputmode="decimal" placeholder="0.00">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_paymentInterest">Payment Interest (₱)</label>
+                  <input id="f_paymentInterest" name="paymentInterest" type="text" inputmode="decimal" placeholder="0.00">
+                </div>
+              </div>
+              <div class="total-computed-box payment-box">
+                <span class="total-label">Total Payment Collected:</span>
+                <input class="total-input-display" id="f_paymentTotal" name="paymentTotal" type="text" inputmode="decimal" readonly value="0.00">
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">Legal Referral &amp; Coverage Dates</div>
+              <div class="form-grid-2">
+                <div class="form-control-wrap">
+                  <label for="f_coverageDate">Date of Coverage</label>
+                  <input id="f_coverageDate" name="coverageDate" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_legalReferralDate">Date Referred to Legal</label>
+                  <input id="f_legalReferralDate" name="legalReferralDate" type="date">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card-box">
+              <div class="form-card-title">Demand Letter &amp; Court Litigation Details</div>
+              <div class="form-grid-3">
+                <div class="form-control-wrap">
+                  <label for="f_demandLetterDate">Demand Letter Date</label>
+                  <input id="f_demandLetterDate" name="demandLetterDate" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_demandLetterReceivedDate">Demand Letter Received Date</label>
+                  <input id="f_demandLetterReceivedDate" name="demandLetterReceivedDate" type="date">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_demandPersonReceived">Person Received (Demand)</label>
+                  <input id="f_demandPersonReceived" name="demandPersonReceived" type="text" placeholder="Authorized recipient">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_handlingLawyer">Handling Lawyer</label>
+                  <input id="f_handlingLawyer" name="handlingLawyer" type="text" placeholder="Atty. Name">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_docketNumber">Docket / Case #</label>
+                  <input id="f_docketNumber" name="docketNumber" type="text" placeholder="e.g. SSS-2026-001">
+                </div>
+                <div class="form-control-wrap">
+                  <label for="f_caseDate">Case Filing Date</label>
+                  <input id="f_caseDate" name="caseDate" type="date">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action Toolbar -->
+          <div class="employer-form-footer">
+            <div class="form-footer-nav">
+              <button class="form-nav-btn prev-tab-btn" type="button" id="prevTabBtn" disabled>
+                &larr; Previous Section
+              </button>
+              <button class="form-nav-btn next-tab-btn" type="button" id="nextTabBtn">
+                Next Section &rarr;
+              </button>
+            </div>
+            <div class="form-footer-actions">
+              <button class="btn-cancel-modal" id="cancelEmployerFormBtn" type="button">Cancel</button>
+              <button class="employer-submit-btn" type="submit">SUBMIT RECORD</button>
+            </div>
+          </div>
         </form>
       </section>
     </main>
 
     <main id="dashboardView">
 
-    <!-- Metric Cards Row 1 -->
+    <!-- Metric Cards Row 1: Recovery Targets & Financials -->
     <section class="metrics-row metrics-row-5">
-      <div class="metric-card">
-        <div class="metric-header metric-blue">TOTAL EMPLOYERS</div>
+      <div class="metric-card metric-card-interactive" data-card-action="total" title="Click to view all accounts in MasterFile">
+        <div class="metric-header metric-blue">TOTAL ENCODED ACCOUNTS</div>
         <div class="metric-value" data-main-metric="total">0</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-green">SETTLED</div>
-        <div class="metric-value" data-main-metric="settled">0</div>
+      <div class="metric-card metric-card-interactive" data-card-action="billed" title="Click to view all billed receivables in MasterFile">
+        <div class="metric-header metric-lightblue">TOTAL COLLECTIBLES</div>
+        <div class="metric-value" data-main-metric="billed">₱0.00</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-red">UNSETTLED</div>
-        <div class="metric-value" data-main-metric="unsettled">0</div>
+      <div class="metric-card metric-card-interactive" data-card-action="paid" title="Click to view settled accounts in MasterFile">
+        <div class="metric-header metric-green">TOTAL COLLECTED</div>
+        <div class="metric-value" data-main-metric="paid">₱0.00</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-gold">COMPLETION</div>
-        <div class="metric-value" data-main-metric="completion">0%</div>
+      <div class="metric-card metric-card-interactive" data-card-action="unsettledAmount" title="Click to view unsettled accounts with outstanding balance">
+        <div class="metric-header metric-gold">OUTSTANDING BALANCE</div>
+        <div class="metric-value" data-main-metric="unsettledAmount">₱0.00</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-lightblue">TOTAL BILLED</div>
-        <div class="metric-value" data-main-metric="billed">0</div>
+      <div class="metric-card metric-card-interactive" data-card-action="paid" title="Click to view overall collection recovery rate">
+        <div class="metric-header metric-green">COLLECTION EFFICIENCY</div>
+        <div class="metric-value" data-main-metric="accomplishmentRate">0.00%</div>
       </div>
     </section>
 
-    <!-- Metric Cards Row 2 -->
-    <section class="metrics-row metrics-row-4">
-      <div class="metric-card">
-        <div class="metric-header metric-green">SETTLED AMOUNT</div>
-        <div class="metric-value" data-main-metric="settledAmount">0</div>
+    <!-- Branch Collection Segmented Progress Bar Banner -->
+    <div class="target-progress-banner">
+      <div class="target-progress-header">
+        <div class="target-progress-title">
+          <span>BRANCH COLLECTION &amp; DELINQUENCY RECOVERY STATUS</span>
+        </div>
+        <div class="target-progress-stats">
+          <span id="targetProgressLabel">₱0.00 / ₱0.00</span>
+          <span class="target-percent-badge" id="targetProgressBadge">0.00% RECOVERED</span>
+        </div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-red">UNSETTLED AMOUNT</div>
-        <div class="metric-value" data-main-metric="unsettledAmount">0</div>
+      <div class="segmented-progress-track">
+        <div class="seg-fill seg-collected" id="segCollected" style="width: 0%;" title="Collected / Settled"></div>
+        <div class="seg-fill seg-soa" id="segSoa" style="width: 0%;" title="Under Active SOA Demands"></div>
+        <div class="seg-fill seg-legal" id="segLegal" style="width: 0%;" title="Referred to Legal Division"></div>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-gold">REGISTERED</div>
-        <div class="metric-value" data-main-metric="registered">0</div>
+      <div class="segmented-legend">
+        <span class="legend-item"><span class="legend-dot dot-green"></span> Collected: <strong id="legendPaid">₱0.00</strong> (<span id="legendPaidPct">0%</span>)</span>
+        <span class="legend-item"><span class="legend-dot dot-amber"></span> In Active SOA Demands: <strong id="legendActive">₱0.00</strong> (<span id="legendActivePct">0%</span>)</span>
+        <span class="legend-item"><span class="legend-dot dot-red"></span> Referred to Legal: <strong id="legendLegal">₱0.00</strong> (<span id="legendLegalPct">0%</span>)</span>
       </div>
-      <div class="metric-card">
-        <div class="metric-header metric-lightblue">NOT YET REGISTERED</div>
-        <div class="metric-value" data-main-metric="unregistered">0</div>
+    </div>
+
+    <!-- Metric Cards Row 2: SOA Lifecycle & Legal Enforcement Pipeline -->
+    <section class="metrics-row metrics-row-5">
+      <div class="metric-card metric-card-interactive" data-card-action="soa1Count" title="Click to filter 1st SOA Served in MasterFile">
+        <div class="metric-header metric-lightblue">1ST SOA ACTIVE</div>
+        <div class="metric-value" data-main-metric="soa1Count">0</div>
+      </div>
+      <div class="metric-card metric-card-interactive" data-card-action="soa2Count" title="Click to filter 2nd SOA Served in MasterFile">
+        <div class="metric-header metric-gold">2ND SOA ESCALATED</div>
+        <div class="metric-value" data-main-metric="soa2Count">0</div>
+      </div>
+      <div class="metric-card metric-card-interactive" data-card-action="soa3Count" title="Click to filter 3rd SOA Served in MasterFile">
+        <div class="metric-header metric-red">3RD SOA ESCALATED</div>
+        <div class="metric-value" data-main-metric="soa3Count">0</div>
+      </div>
+      <div class="metric-card metric-card-interactive" data-card-action="legalCount" title="Click to filter accounts Referred to Legal in MasterFile">
+        <div class="metric-header metric-red">REFERRED TO LEGAL</div>
+        <div class="metric-value" data-main-metric="legalCount">0</div>
+      </div>
+      <div class="metric-card metric-card-interactive" data-card-action="dueCount" title="Click to open 15-Day Reminders Modal">
+        <div class="metric-header metric-gold">15-DAY COMPLIANCE ALERTS</div>
+        <div class="metric-value" data-main-metric="dueCount">0</div>
       </div>
     </section>
 
@@ -284,56 +598,76 @@
     <section class="middle-section">
       <!-- Branch Performance Table -->
       <div class="panel panel-branch">
-        <div class="panel-header">BRANCH PERFORMANCE</div>
+        <div class="panel-header">BRANCH PERFORMANCE BREAKDOWN</div>
         <div class="panel-body">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Branch</th>
-                <th>Records</th>
+                <th>Officer</th>
+                <th>RP</th>
+                <th>IP</th>
+                <th>SP</th>
+                <th>Total Records</th>
                 <th>Settled</th>
                 <th>Unsettled</th>
-                <th>Billed Amount</th>
-                <th>Unsettled Amount</th>
-                <th>Completion%</th>
+                <th>Collectibles (Billed)</th>
+                <th>Collections (Paid)</th>
+                <th>Balance</th>
+                <th>Collection Rate</th>
               </tr>
             </thead>
             <tbody>
-              <tr data-branch-row="AO1">
-                <td>AO1</td>
+              <tr data-branch-row="AO1" class="branch-row-clickable" title="Click to open AO1 Database">
+                <td><strong>AO1</strong></td>
+                <td data-branch-metric="rp">0</td>
+                <td data-branch-metric="ip">0</td>
+                <td data-branch-metric="sp">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0</td>
-                <td data-branch-metric="unsettledAmount">0</td>
-                <td data-branch-metric="completion">0%</td>
+                <td data-branch-metric="billed">0.00</td>
+                <td data-branch-metric="paid">0.00</td>
+                <td data-branch-metric="balance">0.00</td>
+                <td data-branch-metric="accomplishment">0.00%</td>
               </tr>
-              <tr data-branch-row="AO2">
-                <td>AO2</td>
+              <tr data-branch-row="AO2" class="branch-row-clickable" title="Click to open AO2 Database">
+                <td><strong>AO2</strong></td>
+                <td data-branch-metric="rp">0</td>
+                <td data-branch-metric="ip">0</td>
+                <td data-branch-metric="sp">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0</td>
-                <td data-branch-metric="unsettledAmount">0</td>
-                <td data-branch-metric="completion">0%</td>
+                <td data-branch-metric="billed">0.00</td>
+                <td data-branch-metric="paid">0.00</td>
+                <td data-branch-metric="balance">0.00</td>
+                <td data-branch-metric="accomplishment">0.00%</td>
               </tr>
-              <tr data-branch-row="AO3">
-                <td>AO3</td>
+              <tr data-branch-row="AO3" class="branch-row-clickable" title="Click to open AO3 Database">
+                <td><strong>AO3</strong></td>
+                <td data-branch-metric="rp">0</td>
+                <td data-branch-metric="ip">0</td>
+                <td data-branch-metric="sp">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0</td>
-                <td data-branch-metric="unsettledAmount">0</td>
-                <td data-branch-metric="completion">0%</td>
+                <td data-branch-metric="billed">0.00</td>
+                <td data-branch-metric="paid">0.00</td>
+                <td data-branch-metric="balance">0.00</td>
+                <td data-branch-metric="accomplishment">0.00%</td>
               </tr>
-              <tr class="total-row">
+              <tr class="total-row branch-row-clickable" data-branch-row="MasterFile" title="Click to open MasterFile">
                 <td>TOTAL</td>
+                <td data-branch-total="rp">0</td>
+                <td data-branch-total="ip">0</td>
+                <td data-branch-total="sp">0</td>
                 <td data-branch-total="total">0</td>
                 <td data-branch-total="settled">0</td>
                 <td data-branch-total="unsettled">0</td>
-                <td data-branch-total="billed">0</td>
-                <td data-branch-total="unsettledAmount">0</td>
-                <td data-branch-total="completion">0%</td>
+                <td data-branch-total="billed">0.00</td>
+                <td data-branch-total="paid">0.00</td>
+                <td data-branch-total="balance">0.00</td>
+                <td data-branch-total="accomplishment">0.00%</td>
               </tr>
             </tbody>
           </table>
@@ -342,33 +676,45 @@
 
       <!-- Status & Data Quality Monitor -->
       <div class="panel panel-status">
-        <div class="panel-header">STATUS &amp; DATA QUALITY MONITOR</div>
+        <div class="panel-header">PIPELINE &amp; DATA QUALITY MONITOR</div>
         <div class="panel-body">
           <table class="status-table">
             <tbody>
-              <tr>
-                <td>Settled records</td>
-                <td data-status-metric="settled">0</td>
+              <tr class="status-row-clickable" data-monitor-action="settled" title="Click to view settled accounts in MasterFile">
+                <td><span class="status-dot dot-green"></span> Fully Settled Accounts</td>
+                <td><span class="status-pill pill-green" data-status-metric="settled">0</span></td>
+              </tr>
+              <tr class="status-row-clickable" data-monitor-action="unsettled" title="Click to view unsettled accounts in MasterFile">
+                <td><span class="status-dot dot-amber"></span> Unsettled / Active Delinquencies</td>
+                <td><span class="status-pill pill-amber" data-status-metric="unsettled">0</span></td>
+              </tr>
+              <tr class="status-row-clickable" data-monitor-action="dueCount" title="Click to open 15-Day Reminders Modal">
+                <td><span class="status-dot dot-red"></span> 15-Day Compliance Overdue</td>
+                <td><span class="status-pill pill-red" data-status-metric="dueCount">0</span></td>
+              </tr>
+              <tr class="status-row-clickable" data-monitor-action="legalCount" title="Click to view accounts referred to Legal in MasterFile">
+                <td><span class="status-dot dot-red"></span> Referred to Legal Division</td>
+                <td><span class="status-pill pill-blue" data-status-metric="legalCount">0</span></td>
+              </tr>
+              <tr class="status-row-clickable" data-monitor-action="pendingSoa" title="Click to filter pending unserved accounts">
+                <td><span class="status-dot dot-gray"></span> Unserved SOA / Pending Audit</td>
+                <td><span class="status-pill pill-gray" data-status-metric="pendingSoa">0</span></td>
               </tr>
               <tr>
-                <td>Unsettled records</td>
-                <td data-status-metric="unsettled">0</td>
+                <td><span class="status-dot dot-gray"></span> Unassessed IP/SP (₱0.00 Amount)</td>
+                <td><span class="status-pill pill-gray" data-status-metric="missingAmount">0</span></td>
               </tr>
               <tr>
-                <td>Records missing amount</td>
-                <td></td>
+                <td><span class="status-dot dot-amber"></span> Duplicate SSS Employer IDs</td>
+                <td><span class="status-pill pill-amber" data-status-metric="duplicateCount">0</span></td>
               </tr>
-              <tr>
-                <td>Records missing billing date</td>
-                <td></td>
+              <tr class="status-row-clickable" data-monitor-action="rp" title="Click to view Regular Payers">
+                <td><span class="status-dot dot-blue"></span> Regular Payers (RP)</td>
+                <td><span class="status-pill pill-blue" data-status-metric="rp">0</span></td>
               </tr>
-              <tr>
-                <td>Records missing status</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>Duplicate employer number</td>
-                <td></td>
+              <tr class="status-row-clickable" data-monitor-action="ipSp" title="Click to view Interim & Special Payers">
+                <td><span class="status-dot dot-blue"></span> Interim &amp; Special Payers (IP/SP)</td>
+                <td><span class="status-pill pill-blue" data-status-metric="ipSp">0</span></td>
               </tr>
             </tbody>
           </table>
@@ -380,7 +726,7 @@
     <section class="bottom-section">
       <div class="charts-area">
         <div class="panel panel-charts">
-          <div class="panel-header">BRANCH PERFORMANCE CHART</div>
+          <div class="panel-header">BRANCH PERFORMANCE &amp; BILLING LIFECYCLE CHARTS</div>
           <div class="charts-grid">
             <div class="chart-box">
               <p class="chart-title">EMPLOYERS ENCODED BY BRANCH</p>
@@ -389,13 +735,13 @@
               </div>
             </div>
             <div class="chart-box">
-              <p class="chart-title">SETTLED VS UNSETTLED</p>
+              <p class="chart-title">SOA ESCALATION &amp; SETTLEMENT PIPELINE</p>
               <div class="chart-canvas-wrap">
                 <canvas id="barChart"></canvas>
               </div>
             </div>
             <div class="chart-box">
-              <p class="chart-title">OVERALL PERFORMANCE CHART</p>
+              <p class="chart-title">OVERALL PERFORMANCE BREAKDOWN</p>
               <div class="chart-canvas-wrap">
                 <canvas id="groupedBarChart"></canvas>
               </div>
@@ -405,28 +751,49 @@
       </div>
 
       <div class="panel panel-insights">
-        <div class="panel-header">MANAGEMENT INSIGHTS</div>
+        <div class="panel-header">EXECUTIVE ACTION INSIGHTS</div>
         <div class="panel-body insights-body">
-          <ul class="insights-list">
-            <li data-insight="leadingBranch">AO2 currently has the most encoded records.</li>
-            <li data-insight="completion">Overall completion rate: 0%</li>
-            <li data-insight="billing">Total billed: P0.00 | Unsettled: P0.00</li>
-            <li data-insight="settlement">Settled: 0 | Unsettled: 0</li>
-            <li data-insight="registration">Registered: 0 | Not Yet Registered: 0</li>
-          </ul>
+          <div class="insights-container">
+            <div class="insight-card card-alert">
+              <div class="insight-badge badge-warning">Action Alert</div>
+              <p class="insight-text" data-insight="alerts">6 accounts have reached the 15-day compliance threshold and are ready for 2nd SOA forwarding.</p>
+            </div>
+            <div class="insight-card card-lead">
+              <div class="insight-badge badge-info">Top Jurisdiction</div>
+              <p class="insight-text" data-insight="leadingBranch">AO1 currently leads with 11 encoded accounts and highest active engagement.</p>
+            </div>
+            <div class="insight-card card-recovery">
+              <div class="insight-badge badge-success">Collection Progress</div>
+              <p class="insight-text" data-insight="billing">₱839,500.00 realized collections against ₱1.78M delinquent receivables.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     </main>
 
+    </main>
+
     <main class="ao-views" aria-live="polite">
       <section class="ao-view" data-ao-view="AO1">
+        <div class="ao-urgent-banner" data-ao-banner="AO1" hidden>
+          <div class="ao-banner-content">
+            <div class="ao-banner-text">
+              <strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="AO1">0</span> account(s) in AO1 jurisdiction have exceeded their 15-day compliance deadline.
+            </div>
+          </div>
+          <div class="ao-banner-actions">
+            <button class="ao-banner-btn ao-banner-filter-btn" type="button" data-banner-filter="AO1">Filter Overdue Accounts</button>
+            <button class="ao-banner-btn ao-banner-review-btn" type="button">View Action Sheet</button>
+          </div>
+        </div>
         <div class="ao-sheet-tabs" role="tablist">
-          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO1 table filters">
           <label class="ao-table-search">
@@ -437,13 +804,25 @@
             <input type="date" data-filter-date aria-label="Filter AO1 by billing date">
           </label>
           <label>
+            <span class="visually-hidden">Filter by address</span>
+            <select data-filter-address aria-label="Filter by Address / Location">
+              <option value="">All Locations / Addresses</option>
+              <option value="Toledo">Toledo City</option>
+              <option value="Balamban">Balamban</option>
+              <option value="Pinamungajan">Pinamungajan</option>
+              <option value="Aloguinsan">Aloguinsan</option>
+              <option value="Asturias">Asturias</option>
+              <option value="Tuburan">Tuburan</option>
+            </select>
+          </label>
+          <label>
             <span class="visually-hidden">Filter by status</span>
             <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
               <option value="1st SOA Served">1st SOA Served</option>
               <option value="2nd SOA Served">2nd SOA Served</option>
               <option value="3rd SOA Served">3rd SOA Served</option>
-              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
+              <option value="due date">Due for Next Action (15-Day Lapsed)</option>
               <option value="Referred to Legal">Referred to Legal</option>
             </select>
           </label>
@@ -454,8 +833,8 @@
             <span class="ao-title-text">ACCOUNT OFFICER 1 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button>
-            <button class="table-edit-data-btn" type="button" data-table-edit-data="AO1" hidden>Edit data</button>
+            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO1">Summary</button>
+            <button class="table-export-btn" type="button" data-table-export="AO1">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button>
           </div>
         </div>
@@ -488,13 +867,14 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
+              <col class="col-actions" style="width: 90px;">
             </colgroup>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-person">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th colspan="2" class="header-group-soa">1st SOA Served</th><th colspan="2" class="header-group-soa">2nd SOA Served</th><th colspan="2" class="header-group-soa">3rd SOA Served</th><th colspan="2" class="header-group-soa">Billing Served</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="3" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-actions">Actions</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Date Delivered</th><th>Person Received</th><th>Handling Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -503,11 +883,23 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO2">
+        <div class="ao-urgent-banner" data-ao-banner="AO2" hidden>
+          <div class="ao-banner-content">
+            <div class="ao-banner-text">
+              <strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="AO2">0</span> account(s) in AO2 jurisdiction have exceeded their 15-day compliance deadline.
+            </div>
+          </div>
+          <div class="ao-banner-actions">
+            <button class="ao-banner-btn ao-banner-filter-btn" type="button" data-banner-filter="AO2">Filter Overdue Accounts</button>
+            <button class="ao-banner-btn ao-banner-review-btn" type="button">View Action Sheet</button>
+          </div>
+        </div>
         <div class="ao-sheet-tabs" role="tablist">
-          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO2 table filters">
           <label class="ao-table-search">
@@ -518,13 +910,25 @@
             <input type="date" data-filter-date aria-label="Filter AO2 by billing date">
           </label>
           <label>
+            <span class="visually-hidden">Filter by address</span>
+            <select data-filter-address aria-label="Filter by Address / Location">
+              <option value="">All Locations / Addresses</option>
+              <option value="Toledo">Toledo City</option>
+              <option value="Balamban">Balamban</option>
+              <option value="Pinamungajan">Pinamungajan</option>
+              <option value="Aloguinsan">Aloguinsan</option>
+              <option value="Asturias">Asturias</option>
+              <option value="Tuburan">Tuburan</option>
+            </select>
+          </label>
+          <label>
             <span class="visually-hidden">Filter by status</span>
             <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
               <option value="1st SOA Served">1st SOA Served</option>
               <option value="2nd SOA Served">2nd SOA Served</option>
               <option value="3rd SOA Served">3rd SOA Served</option>
-              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
+              <option value="due date">Due for Next Action (15-Day Lapsed)</option>
               <option value="Referred to Legal">Referred to Legal</option>
             </select>
           </label>
@@ -535,8 +939,8 @@
             <span class="ao-title-text">ACCOUNT OFFICER 2 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button>
-            <button class="table-edit-data-btn" type="button" data-table-edit-data="AO2" hidden>Edit data</button>
+            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO2">Summary</button>
+            <button class="table-export-btn" type="button" data-table-export="AO2">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button>
           </div>
         </div>
@@ -569,13 +973,14 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
+              <col class="col-actions" style="width: 90px;">
             </colgroup>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-person">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th colspan="2" class="header-group-soa">1st SOA Served</th><th colspan="2" class="header-group-soa">2nd SOA Served</th><th colspan="2" class="header-group-soa">3rd SOA Served</th><th colspan="2" class="header-group-soa">Billing Served</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="3" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-actions">Actions</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Date Delivered</th><th>Person Received</th><th>Handling Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -584,11 +989,23 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO3">
+        <div class="ao-urgent-banner" data-ao-banner="AO3" hidden>
+          <div class="ao-banner-content">
+            <div class="ao-banner-text">
+              <strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="AO3">0</span> account(s) in AO3 jurisdiction have exceeded their 15-day compliance deadline.
+            </div>
+          </div>
+          <div class="ao-banner-actions">
+            <button class="ao-banner-btn ao-banner-filter-btn" type="button" data-banner-filter="AO3">Filter Overdue Accounts</button>
+            <button class="ao-banner-btn ao-banner-review-btn" type="button">View Action Sheet</button>
+          </div>
+        </div>
         <div class="ao-sheet-tabs" role="tablist">
-          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO3 table filters">
           <label class="ao-table-search">
@@ -599,13 +1016,25 @@
             <input type="date" data-filter-date aria-label="Filter AO3 by billing date">
           </label>
           <label>
+            <span class="visually-hidden">Filter by address</span>
+            <select data-filter-address aria-label="Filter by Address / Location">
+              <option value="">All Locations / Addresses</option>
+              <option value="Toledo">Toledo City</option>
+              <option value="Balamban">Balamban</option>
+              <option value="Pinamungajan">Pinamungajan</option>
+              <option value="Aloguinsan">Aloguinsan</option>
+              <option value="Asturias">Asturias</option>
+              <option value="Tuburan">Tuburan</option>
+            </select>
+          </label>
+          <label>
             <span class="visually-hidden">Filter by status</span>
             <select data-filter-status aria-label="Filter status">
               <option value="">All Status</option>
               <option value="1st SOA Served">1st SOA Served</option>
               <option value="2nd SOA Served">2nd SOA Served</option>
               <option value="3rd SOA Served">3rd SOA Served</option>
-              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
+              <option value="due date">Due for Next Action (15-Day Lapsed)</option>
               <option value="Referred to Legal">Referred to Legal</option>
             </select>
           </label>
@@ -616,8 +1045,8 @@
             <span class="ao-title-text">ACCOUNT OFFICER 3 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button>
-            <button class="table-edit-data-btn" type="button" data-table-edit-data="AO3" hidden>Edit data</button>
+            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO3">Summary</button>
+            <button class="table-export-btn" type="button" data-table-export="AO3">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button>
           </div>
         </div>
@@ -650,13 +1079,14 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
+              <col class="col-actions" style="width: 90px;">
             </colgroup>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-person">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th colspan="2" class="header-group-soa">1st SOA Served</th><th colspan="2" class="header-group-soa">2nd SOA Served</th><th colspan="2" class="header-group-soa">3rd SOA Served</th><th colspan="2" class="header-group-soa">Billing Served</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="3" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-actions">Actions</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Date Delivered</th><th>Person Received</th><th>Handling Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -665,27 +1095,51 @@
       </section>
 
       <section class="ao-view" data-ao-view="MasterFile">
+        <div class="ao-urgent-banner" data-ao-banner="MasterFile" hidden>
+          <div class="ao-banner-content">
+            <div class="ao-banner-text">
+              <strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="MasterFile">0</span> total branch account(s) have exceeded their 15-day compliance deadline.
+            </div>
+          </div>
+          <div class="ao-banner-actions">
+            <button class="ao-banner-btn ao-banner-filter-btn" type="button" data-banner-filter="MasterFile">Filter Overdue Accounts</button>
+            <button class="ao-banner-btn ao-banner-review-btn" type="button">View Action Sheet</button>
+          </div>
+        </div>
         <div class="ao-sheet-tabs" role="tablist">
-          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">📑 All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">📑 Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">📑 Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">📑 Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
+          <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
         </div>
         <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
           <label class="ao-table-search">
-            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
+            <input type="search" placeholder="Search across all Toledo records..." aria-label="Search all records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by branch</span>
+            <select data-filter-branch aria-label="Filter by assigned branch">
+              <option value="">All Account Officers</option>
+              <option value="AO1">AO1</option>
+              <option value="AO2">AO2</option>
+              <option value="AO3">AO3</option>
+            </select>
           </label>
           <label>
             <span class="visually-hidden">Filter by date</span>
             <input type="date" data-filter-date aria-label="Filter MasterFile by billing date">
           </label>
           <label>
-            <span class="visually-hidden">Filter by AO</span>
-            <select data-filter-view aria-label="Filter MasterFile by AO">
-              <option value="">All AO</option>
-              <option value="AO1">AO1</option>
-              <option value="AO2">AO2</option>
-              <option value="AO3">AO3</option>
+            <span class="visually-hidden">Filter by address</span>
+            <select data-filter-address aria-label="Filter by Address / Location">
+              <option value="">All Locations / Addresses</option>
+              <option value="Toledo">Toledo City</option>
+              <option value="Balamban">Balamban</option>
+              <option value="Pinamungajan">Pinamungajan</option>
+              <option value="Aloguinsan">Aloguinsan</option>
+              <option value="Asturias">Asturias</option>
+              <option value="Tuburan">Tuburan</option>
             </select>
           </label>
           <label>
@@ -695,7 +1149,7 @@
               <option value="1st SOA Served">1st SOA Served</option>
               <option value="2nd SOA Served">2nd SOA Served</option>
               <option value="3rd SOA Served">3rd SOA Served</option>
-              <option value="due date">⚠️ Due for Next Action (15-Day Lapsed)</option>
+              <option value="due date">Due for Next Action (15-Day Lapsed)</option>
               <option value="Referred to Legal">Referred to Legal</option>
             </select>
           </label>
@@ -706,8 +1160,8 @@
             <span class="ao-title-text">SSS TOLEDO ALL BRANCH RECORDS</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button>
-            <button class="table-edit-data-btn" type="button" data-table-edit-data="MasterFile" hidden>Edit data</button>
+            <button class="table-dashboard-btn" type="button" data-table-dashboard="MasterFile">Summary</button>
+            <button class="table-export-btn" type="button" data-table-export="MasterFile">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button>
           </div>
         </div>
@@ -740,13 +1194,14 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
+              <col class="col-actions" style="width: 90px;">
             </colgroup>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-person">Person Received</th>
+                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Payer Type</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th colspan="2" class="header-group-soa">1st SOA Served</th><th colspan="2" class="header-group-soa">2nd SOA Served</th><th colspan="2" class="header-group-soa">3rd SOA Served</th><th colspan="2" class="header-group-soa">Billing Served</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="3" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2" class="th-status">Status</th><th rowspan="2" class="th-actions">Actions</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Person Received</th><th>Date</th><th>Date Delivered</th><th>Person Received</th><th>Handling Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -764,18 +1219,36 @@
         </div>
         <div class="table-dashboard-content">
           <section class="metrics-row metrics-row-5">
-            <div class="metric-card"><div class="metric-header metric-blue">TOTAL EMPLOYERS</div><div class="metric-value" data-dashboard-metric="total">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-green">SETTLED</div><div class="metric-value" data-dashboard-metric="settled">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED</div><div class="metric-value" data-dashboard-metric="unsettled">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-gold">COMPLETION</div><div class="metric-value" data-dashboard-metric="completion">0%</div></div>
-            <div class="metric-card"><div class="metric-header metric-lightblue">TOTAL BILLED</div><div class="metric-value" data-dashboard-metric="billed">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-blue">TOTAL ENCODED</div><div class="metric-value" data-dashboard-metric="total">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-lightblue">TOTAL COLLECTIBLES</div><div class="metric-value" data-dashboard-metric="billed">₱0.00</div></div>
+            <div class="metric-card"><div class="metric-header metric-green">TOTAL COLLECTED</div><div class="metric-value" data-dashboard-metric="paid">₱0.00</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">MONTHLY TARGET</div><div class="metric-value" data-dashboard-metric="target">₱5,000,000.00</div></div>
+            <div class="metric-card"><div class="metric-header metric-green">COLLECTION RATE</div><div class="metric-value" data-dashboard-metric="accomplishment">0%</div></div>
           </section>
-          <section class="metrics-row metrics-row-4">
-            <div class="metric-card"><div class="metric-header metric-green">SETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="settledAmount">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="unsettledAmount">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-gold">REGISTERED</div><div class="metric-value" data-dashboard-metric="registered">0</div></div>
-            <div class="metric-card"><div class="metric-header metric-lightblue">NOT YET REGISTERED</div><div class="metric-value" data-dashboard-metric="unregistered">0</div></div>
+          <section class="metrics-row metrics-row-5">
+            <div class="metric-card"><div class="metric-header metric-lightblue">1ST SOA SERVED</div><div class="metric-value" data-dashboard-metric="soa1Count">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">2ND SOA SERVED</div><div class="metric-value" data-dashboard-metric="soa2Count">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">3RD SOA SERVED</div><div class="metric-value" data-dashboard-metric="soa3Count">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">REFERRED TO LEGAL</div><div class="metric-value" data-dashboard-metric="legalCount">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">15-DAY ACTION</div><div class="metric-value" data-dashboard-metric="dueCount">0</div></div>
           </section>
+        </div>
+      </section>
+    </div>
+
+    <!-- 1-Click Statement of Account & Billing Breakdown Modal -->
+    <div class="modal-backdrop" id="billingHistoryModal" hidden>
+      <section class="modal-card billing-history-modal-card" role="dialog" aria-modal="true" aria-labelledby="billingHistoryTitle">
+        <div class="employer-modal-header">
+          <h2 id="billingHistoryTitle">STATEMENT OF ACCOUNT &amp; BILLING BREAKDOWN</h2>
+          <button class="modal-close-btn" id="billingHistoryClose" type="button" aria-label="Close statement">&times;</button>
+        </div>
+        <div class="billing-history-body" id="billingHistoryBody">
+          <!-- Populated dynamically with SOA stage breakdown -->
+        </div>
+        <div class="billing-history-actions">
+          <button class="billing-edit-btn" id="billingHistoryEditBtn" type="button">Edit Account Details</button>
+          <button class="billing-close-btn" id="billingHistoryDismissBtn" type="button">Close</button>
         </div>
       </section>
     </div>
@@ -794,6 +1267,56 @@
         </div>
       </section>
     </main>
+
+    <!-- Edit Officer Profile & Assigned Area Modal -->
+    <div class="modal-backdrop" id="editOfficerModal" hidden>
+      <section class="modal-card edit-officer-modal-card" role="dialog" aria-modal="true" aria-labelledby="editOfficerTitle">
+        <div class="modal-card-header">
+          <h2 id="editOfficerTitle">Edit Officer Profile &amp; Assigned Area</h2>
+          <button class="modal-card-close" id="editOfficerClose" type="button" aria-label="Close modal">&times;</button>
+        </div>
+        <form class="edit-officer-form" id="editOfficerForm">
+          <input type="hidden" name="officerId">
+          <div class="officer-preview-card">
+            <div class="officer-preview-avatar-wrap">
+              <img class="officer-preview-avatar-img" id="officerPreviewImg" src="" alt="Officer Avatar" hidden>
+              <span class="officer-preview-fallback" id="officerPreviewFallback">BA</span>
+            </div>
+            <div class="officer-preview-info">
+              <h3 id="officerPreviewName">Admin</h3>
+              <p id="officerPreviewUsername">@admin</p>
+            </div>
+          </div>
+
+          <label>
+            <span>Full Name / Officer Title</span>
+            <input name="officerFullName" type="text" placeholder="e.g. Branch Administrator">
+          </label>
+
+          <label>
+            <span>Profile Photo URL</span>
+            <input name="officerPhotoUrl" id="officerPhotoUrlInput" type="text" placeholder="https://... or data:image/...">
+          </label>
+
+          <label class="officer-file-label">
+            <span>Or Choose Image File</span>
+            <input type="file" id="officerPhotoFileInput" accept="image/*">
+          </label>
+
+          <label>
+            <span>Assigned Jurisdiction / Location Area</span>
+            <textarea name="officerAssignedPlaces" rows="3" placeholder="e.g. Toledo City (Urban &amp; Commercial Districts)"></textarea>
+          </label>
+
+          <p class="officer-edit-error" id="editOfficerError" role="alert" hidden></p>
+
+          <div class="edit-officer-actions">
+            <button class="btn-cancel" id="editOfficerCancel" type="button">Cancel</button>
+            <button class="btn-save" type="submit">Save Changes</button>
+          </div>
+        </form>
+      </section>
+    </div>
 
     <div class="modal-backdrop delete-confirm-backdrop" id="deleteConfirmModal" hidden>
       <section class="delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">

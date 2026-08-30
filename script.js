@@ -46,27 +46,29 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
   const superAdmin = account.role === 'Super Admin';
-  pageWrapper.classList.remove('officer-mode');
-  pageWrapper.classList.add('dashboard-active');
+  pageWrapper.classList.toggle('officer-mode', officerMode);
+  pageWrapper.classList.toggle('dashboard-active', !officerMode);
   pageWrapper.dataset.officerView = officerViewName;
-  document.querySelector('.org-chart-btn').hidden = officerMode;
+
+  const orgChartBtn = document.querySelector('.org-chart-btn');
+  if (orgChartBtn) {
+    orgChartBtn.hidden = officerMode;
+    orgChartBtn.style.display = officerMode ? 'none' : '';
+  }
+
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
     navItem.hidden = (superAdmin && navView.startsWith('AO'))
       || (superAdmin && navView === 'EmployerForm')
       || (officerMode && navView !== officerViewName && navView !== 'EmployerForm');
   });
-  document.getElementById('employerFormView').hidden = true;
-  document.getElementById('dashboardView').hidden = false;
-  document.querySelectorAll('.ao-view').forEach((view) => {
-    view.hidden = true;
-  });
-  document.querySelector('.ao-views').classList.remove('is-active');
-  document.getElementById('mainNav').dataset.activeView = 'DASHBOARD';
+
+  const soaNotification = document.querySelector('.soa-notification-item');
+  if (soaNotification) soaNotification.hidden = false;
+
+  const defaultView = officerMode ? officerViewName : 'DASHBOARD';
+  navigateToView(defaultView);
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
-  const openOfficerDataForm = () => {
-    if (officerMode) openEmployerModal(officerViewName);
-  };
 
   if (animate) {
     authScreen.hidden = false;
@@ -75,7 +77,7 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
       authScreen.classList.remove('is-authenticating');
       authScreen.hidden = true;
       dashboardShell.hidden = false;
-      openOfficerDataForm();
+      navigateToView(defaultView);
       if (onAnimationEnd) onAnimationEnd();
     }, AUTH_TRANSITION_MS);
     return;
@@ -83,7 +85,7 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
   authScreen.hidden = true;
   dashboardShell.hidden = false;
-  if (officerMode) window.setTimeout(openOfficerDataForm, 0);
+  navigateToView(defaultView);
 };
 
 const signOut = () => {
@@ -97,92 +99,87 @@ const signOut = () => {
   });
   document.querySelector('.org-chart-btn').hidden = false;
   document.getElementById('employerFormView').hidden = true;
-  sessionStorage.removeItem('sssAuthenticatedUser');
+  clearAuthSession();
   dashboardShell.hidden = true;
   authScreen.hidden = false;
   loginForm.reset();
   document.getElementById('username').focus();
 };
 
-const savedUser = sessionStorage.getItem('sssAuthenticatedUser');
-if (savedUser) {
+const saveAuthSession = (user) => {
+  const data = JSON.stringify(user);
   try {
-    const savedAccount = JSON.parse(savedUser);
-    if (!savedAccount.accessToken) throw new Error('Session refresh required.');
-    showDashboard(savedAccount);
-  } catch (_error) {
+    sessionStorage.setItem('sssAuthenticatedUser', data);
+    localStorage.setItem('sssAuthenticatedUser', data);
+  } catch (_e) {}
+};
+
+const clearAuthSession = () => {
+  try {
     sessionStorage.removeItem('sssAuthenticatedUser');
-    dashboardShell.hidden = true;
-  }
-} else dashboardShell.hidden = true;
+    localStorage.removeItem('sssAuthenticatedUser');
+  } catch (_e) {}
+};
 
-loginForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const email = loginForm.elements.username.value.trim();
-  const password = loginForm.elements.password.value;
-  const submitButton = loginForm.querySelector('button[type="submit"]');
-  submitButton.disabled = true;
-  submitButton.classList.add('is-loading');
-  submitButton.setAttribute('aria-label', 'Signing in');
-  loginError.hidden = true;
-
+const getSavedAuthSession = () => {
   try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
-
-    sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
-    let calendarEventsReady;
-    showDashboard(result.user, {
-      animate: true,
-      onAnimationEnd: () => {
-        if (isOfficerRole(result.user.role)) return;
-        showCalendarPage();
-        calendarEventsReady.then(() => {
-          window.setTimeout(showCurrentDateNotification, 500);
-        });
-      },
-    });
-    syncOfficerFormLayout();
-    loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
-    loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
-    calendarEventsReady = loadCalendarEvents({ showNotification: false });
-    calendarEventsReady.catch((error) => console.error(error));
-  } catch (error) {
-    loginError.textContent = error.message;
-    loginError.hidden = false;
-    loginForm.elements.password.focus();
-  } finally {
-    submitButton.disabled = false;
-    submitButton.classList.remove('is-loading');
-    submitButton.removeAttribute('aria-label');
+    const data = sessionStorage.getItem('sssAuthenticatedUser') || localStorage.getItem('sssAuthenticatedUser');
+    return data ? JSON.parse(data) : null;
+  } catch (_e) {
+    return null;
   }
-});
+};
 
-returnToLogin.addEventListener('click', () => showAuthForm('login'));
+if (returnToLogin) {
+  returnToLogin.addEventListener('click', () => showAuthForm('login'));
+}
 
-registerForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const password = registerForm.elements.registrationPassword.value;
-  const confirmPassword = registerForm.elements.confirmPassword.value;
+if (registerForm) {
+  registerForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const password = registerForm.elements.registrationPassword?.value;
+    const confirmPassword = registerForm.elements.confirmPassword?.value;
 
-  if (password !== confirmPassword) {
-    registerError.textContent = 'Passwords do not match.';
-    registerError.hidden = false;
-    registerForm.elements.confirmPassword.focus();
-    return;
-  }
+    if (password !== confirmPassword) {
+      if (registerError) {
+        registerError.textContent = 'Passwords do not match.';
+        registerError.hidden = false;
+      }
+      registerForm.elements.confirmPassword?.focus();
+      return;
+    }
 
-  registerError.hidden = true;
-  registerForm.reset();
-  showAuthForm('login');
-  loginError.textContent = 'Registration submitted. An administrator must approve your account before activation.';
-  loginError.hidden = false;
-});
+    if (registerError) registerError.hidden = true;
+    registerForm.reset();
+    showAuthForm('login');
+    if (loginError) {
+      loginError.textContent = 'Registration submitted. An administrator must approve your account before activation.';
+      loginError.hidden = false;
+    }
+  });
+}
+
+const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+if (togglePasswordBtn) {
+  togglePasswordBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const passwordInput = document.getElementById('password');
+    if (!passwordInput) return;
+    const isCurrentlyPassword = passwordInput.type === 'password';
+    passwordInput.type = isCurrentlyPassword ? 'text' : 'password';
+    togglePasswordBtn.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+    togglePasswordBtn.innerHTML = isCurrentlyPassword
+      ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>`
+      : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+          <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
+        </svg>`;
+  });
+}
 
 const openLogoutConfirmation = () => {
   logoutConfirmModal.hidden = false;
@@ -271,6 +268,18 @@ const updateEmployerTotals = () => {
   if (employerForm.elements.paymentTotal) {
     employerForm.elements.paymentTotal.value = formatAmount(paymentPrincipal + paymentInterest + paymentPenalty);
   }
+  const soa2Principal = parseAmount(employerForm.elements.soa2Principal?.value);
+  const soa2Penalty = parseAmount(employerForm.elements.soa2Penalty?.value);
+  const soa2Interest = parseAmount(employerForm.elements.soa2Interest?.value);
+  if (employerForm.elements.soa2Total) {
+    employerForm.elements.soa2Total.value = formatAmount(soa2Principal + soa2Penalty + soa2Interest);
+  }
+  const soa3Principal = parseAmount(employerForm.elements.soa3Principal?.value);
+  const soa3Penalty = parseAmount(employerForm.elements.soa3Penalty?.value);
+  const soa3Interest = parseAmount(employerForm.elements.soa3Interest?.value);
+  if (employerForm.elements.soa3Total) {
+    employerForm.elements.soa3Total.value = formatAmount(soa3Principal + soa3Penalty + soa3Interest);
+  }
 };
 
 const amountFieldNames = [
@@ -282,6 +291,14 @@ const amountFieldNames = [
   'paymentInterest',
   'paymentPenalty',
   'paymentTotal',
+  'soa2Principal',
+  'soa2Penalty',
+  'soa2Interest',
+  'soa2Total',
+  'soa3Principal',
+  'soa3Penalty',
+  'soa3Interest',
+  'soa3Total',
 ];
 
 amountFieldNames.forEach((fieldName) => {
@@ -295,11 +312,7 @@ amountFieldNames.forEach((fieldName) => {
   });
 });
 
-['principal', 'penalty', 'interest'].forEach((fieldName) => {
-  employerForm?.elements[fieldName]?.addEventListener('input', updateEmployerTotals);
-});
-
-['paymentPrincipal', 'paymentInterest', 'paymentPenalty'].forEach((fieldName) => {
+['principal', 'penalty', 'interest', 'paymentPrincipal', 'paymentInterest', 'paymentPenalty', 'soa2Principal', 'soa2Penalty', 'soa2Interest', 'soa3Principal', 'soa3Penalty', 'soa3Interest'].forEach((fieldName) => {
   employerForm?.elements[fieldName]?.addEventListener('input', updateEmployerTotals);
 });
 
@@ -468,21 +481,82 @@ const employerFields = [
   'payment_interest',
   'payment_penalty',
   'payment_total',
-  'billing_date',
   'soa_date',
+  'person_received',
   'soa2_date',
+  'soa2_person_received',
   'soa3_date',
+  'soa3_person_received',
+  'billing_date',
+  'billing_person_received',
   'coverage_date',
   'legal_referral_date',
   'demand_letter_date',
   'demand_letter_received_date',
+  'demand_person_received',
   'handling_lawyer',
   'docket_number',
   'case_date',
   'status',
-  'person_received',
 ];
 const amountFieldIndexes = [5, 6, 7, 8, 9, 10, 11, 12];
+const dateFieldIndexes = [13, 15, 17, 19, 21, 22, 23, 24, 28];
+const formatSssEmployerNumber = (val) => {
+  if (!val) return '';
+  const digits = String(val).replace(/\D/g, '').slice(0, 10);
+  if (digits.length > 9) {
+    return `${digits.slice(0, 2)}-${digits.slice(2, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length > 2) {
+    return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  }
+  return digits;
+};
+
+const employerToRow = (employer) => [
+  formatSssEmployerNumber(employer.employer_number),
+  employer.employer_name || '',
+  employer.payer_type || 'Interim Payer',
+  employer.address || '',
+  employer.employee_count ?? 0,
+  employer.principal ?? 0,
+  employer.interest ?? 0,
+  employer.penalty ?? 0,
+  employer.total_amount ?? 0,
+  employer.payment_principal ?? 0,
+  employer.payment_interest ?? 0,
+  employer.payment_penalty ?? 0,
+  employer.payment_total ?? 0,
+  employer.soa_date || '',
+  employer.person_received || '',
+  employer.soa2_date || '',
+  employer.soa2_person_received || '',
+  employer.soa3_date || '',
+  employer.soa3_person_received || '',
+  employer.billing_date || '',
+  employer.billing_person_received || '',
+  employer.coverage_date || '',
+  employer.legal_referral_date || '',
+  employer.demand_letter_date || '',
+  employer.demand_letter_received_date || '',
+  employer.demand_person_received || '',
+  employer.handling_lawyer || '',
+  employer.docket_number || '',
+  employer.case_date || '',
+  employer.status || '1st SOA Served',
+];
+
+const formatDisplayDate = (val) => {
+  if (!val) return '';
+  const str = String(val).split('T')[0].trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const parts = str.split('-');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[parseInt(parts[1], 10) - 1] || parts[1];
+    return `${parts[2]}-${month}-${parts[0]}`;
+  }
+  return str;
+};
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
   .map((row) => [...row.cells].map((cell) => cell.textContent.trim()));
@@ -495,7 +569,7 @@ const formatAmount = (value) => {
     ? amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
 };
-const isAmountMetric = (name) => ['billed', 'settledAmount', 'unsettledAmount'].includes(name);
+const isAmountMetric = (name) => ['billed', 'paid', 'settledAmount', 'unsettledAmount', 'target'].includes(name);
 const SOA_COMPLIANCE_DAYS = 15;
 
 const getEmployerSoaInfo = (employer) => {
@@ -543,7 +617,12 @@ const getEmployerSoaInfo = (employer) => {
     return { stage: status || 'Not Yet Served', isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction: 'Serve 1st SOA', targetField };
   }
 
-  const served = new Date(`${servedDate}T00:00:00`);
+  const dateOnly = String(servedDate || '').split('T')[0].trim();
+  if (!dateOnly || !/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    return { stage: activeStage, isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction, targetField };
+  }
+
+  const served = new Date(`${dateOnly}T00:00:00`);
   if (Number.isNaN(served.getTime())) {
     return { stage: activeStage, isDue: false, isLapsed: false, isForwarded: false, daysRemaining: null, nextAction, targetField };
   }
@@ -584,46 +663,32 @@ const configureStatusDropdown = (employer = null) => {
   const statusSelect = employerForm.elements.status;
   if (!statusSelect) return;
 
-  statusSelect.innerHTML = '';
+  const statusList = [
+    { value: '1st SOA Served', label: '1st SOA Served' },
+    { value: '2nd SOA Served', label: '2nd SOA Served' },
+    { value: '3rd SOA Served', label: '3rd SOA Served' },
+    { value: 'Referred to Legal', label: 'Referred to Legal' },
+    { value: 'Settled', label: 'Settled' },
+  ];
 
-  if (!employer || !employer.id) {
-    // New Employer: strictly 1st SOA Served
-    statusSelect.innerHTML = `
-      <option value="1st SOA Served" selected>1st SOA Served (Initial Notice)</option>
-    `;
+  const currentStatus = employer?.status || (employerForm.elements.payerType?.value === 'Regular Payer' ? 'Settled' : '1st SOA Served');
+
+  if (!employer) {
+    // Registration mode
+    const isRegular = employerForm.elements.payerType?.value === 'Regular Payer';
+    const regStatus = isRegular ? 'Settled' : '1st SOA Served';
+    statusSelect.innerHTML = statusList.map((opt) => `
+      <option value="${opt.value}" ${opt.value === regStatus ? 'selected' : ''}>${opt.label}</option>
+    `).join('');
+    statusSelect.disabled = true;
     return;
   }
 
-  // Existing Employer: Check current stage to unlock only logical next progression
-  const has1stSoa = Boolean(employer.soa_date || employer.billing_date);
-  const has2ndSoa = Boolean(employer.soa2_date);
-  const has3rdSoa = Boolean(employer.soa3_date);
-  const isLegal = String(employer.status || '').toLowerCase().includes('legal') || Boolean(employer.legal_referral_date);
-
-  const options = [];
-
-  if (isLegal) {
-    options.push({ value: 'Referred to Legal', label: '⚖️ Referred to Legal (Current)', selected: true });
-  } else if (has3rdSoa) {
-    options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Current)', selected: employer.status === '3rd SOA Served' });
-    options.push({ value: 'Referred to Legal', label: '⚖️ Forward to Legal / Legal Action' });
-  } else if (has2ndSoa) {
-    options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Current)', selected: employer.status === '2nd SOA Served' });
-    options.push({ value: '3rd SOA Served', label: '3rd SOA Served (Next Notice)' });
-  } else if (has1stSoa) {
-    options.push({ value: '1st SOA Served', label: '1st SOA Served (Current)', selected: employer.status === '1st SOA Served' });
-    options.push({ value: '2nd SOA Served', label: '2nd SOA Served (Next Notice)' });
-  } else {
-    options.push({ value: '1st SOA Served', label: '1st SOA Served', selected: true });
-  }
-
-  statusSelect.innerHTML = options.map((opt) => `
-    <option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.label}</option>
+  // Edit mode
+  statusSelect.disabled = false;
+  statusSelect.innerHTML = statusList.map((opt) => `
+    <option value="${opt.value}" ${opt.value === currentStatus ? 'selected' : ''}>${opt.label}</option>
   `).join('');
-
-  if (employer.status && [...statusSelect.options].some((o) => o.value === employer.status)) {
-    statusSelect.value = employer.status;
-  }
 };
 
 const markEmployerAsForwarded = async (employerId, activeStage) => {
@@ -663,7 +728,9 @@ const markEmployerAsForwarded = async (employerId, activeStage) => {
 
 const isBillingDue = (billingDate, today = new Date()) => {
   if (!billingDate) return false;
-  const dueDate = new Date(`${billingDate}T00:00:00`);
+  const dateOnly = String(billingDate || '').split('T')[0].trim();
+  if (!dateOnly || !/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return false;
+  const dueDate = new Date(`${dateOnly}T00:00:00`);
   if (Number.isNaN(dueDate.getTime())) return false;
   dueDate.setDate(dueDate.getDate() + SOA_COMPLIANCE_DAYS);
   const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -698,9 +765,14 @@ const updateSoaReminders = () => {
   badge.textContent = dueEmployers.length;
   badge.hidden = dueEmployers.length === 0;
 
+  const bellBtn = document.getElementById('soaNotificationBell');
+  if (bellBtn) {
+    bellBtn.classList.toggle('soa-bell-pulse', dueEmployers.length > 0);
+  }
+
   if (reminderList) {
     if (dueEmployers.length === 0) {
-      reminderList.innerHTML = '<div class="soa-empty-message">🎉 Great job! All SOA compliance periods are up to date or marked as forwarded. No pending follow-ups required.</div>';
+      reminderList.innerHTML = '<div class="soa-empty-message">All SOA compliance periods are up to date or marked as forwarded. No pending follow-ups required.</div>';
     } else {
       reminderList.innerHTML = dueEmployers.map(({ employer, soaInfo }) => `
         <div class="soa-reminder-item ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
@@ -714,16 +786,16 @@ const updateSoaReminders = () => {
               <strong>${soaInfo.stage}</strong> on ${soaInfo.servedDate || 'N/A'} (15-day deadline: ${soaInfo.dueDate || 'N/A'})
             </div>
             <div class="soa-reminder-days ${soaInfo.isDueSoon && !soaInfo.isLapsed ? 'warning' : ''}">
-              ${soaInfo.isLapsed ? `🚨 15-day period lapsed by ${Math.abs(soaInfo.daysRemaining)} days!` : '⚠️ 24 Hours Notice: 15-day deadline is today!'}
+              ${soaInfo.isLapsed ? `15-day period lapsed by ${Math.abs(soaInfo.daysRemaining)} days!` : '24 Hours Notice: 15-day deadline is today!'}
               &bull; <em>Action required: ${soaInfo.nextAction}</em>
             </div>
           </div>
           <div class="soa-reminder-actions">
             <button class="soa-reminder-forward-btn" type="button" data-soa-forward-id="${employer.id}" data-soa-stage="${soaInfo.activeStage}">
-              📤 Mark as Forwarded
+              Mark as Forwarded
             </button>
             <button class="soa-reminder-action-btn" type="button" data-soa-edit-id="${employer.id}" data-soa-field="${soaInfo.targetField}">
-              ✏️ Edit &amp; Update Record
+              Edit &amp; Update Record
             </button>
           </div>
         </div>
@@ -786,13 +858,15 @@ const filterAoTable = (viewName) => {
   const query = filters.querySelector('input[type="search"]').value.trim().toLowerCase();
   const selectedDate = filters.querySelector('[data-filter-date]').value;
   const selectedStatus = normalizeStatus(filters.querySelector('[data-filter-status]').value);
-  const selectedView = filters.querySelector('[data-filter-view]')?.value || '';
+  const selectedAddress = (filters.querySelector('[data-filter-address]')?.value || '').trim().toLowerCase();
+  const selectedView = (filters.querySelector('[data-filter-branch], [data-filter-view]')?.value || '').trim();
   const activeSheet = view.querySelector('.ao-sheet-tab.active')?.dataset.sheet || 'ALL';
   const rows = [...view.querySelectorAll('tbody tr[data-employer-id]')];
 
   let rpCount = 0;
   let ipCount = 0;
   let spCount = 0;
+  let dueCount = 0;
 
   rows.forEach((row) => {
     const employer = JSON.parse(row.dataset.employer || '{}');
@@ -802,6 +876,8 @@ const filterAoTable = (viewName) => {
     else ipCount += 1;
 
     const soaInfo = getEmployerSoaInfo(employer);
+    if (soaInfo.isDue) dueCount += 1;
+
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
     const matchesDate = !selectedDate || row.cells[13]?.dataset.date === selectedDate;
     
@@ -810,19 +886,24 @@ const filterAoTable = (viewName) => {
       if (selectedStatus === 'due date' || selectedStatus === 'due for 2nd soa') {
         matchesStatus = soaInfo.isDue;
       } else {
-        matchesStatus = normalizeStatus(row.cells[24]?.textContent || employer.status || '') === selectedStatus
+        matchesStatus = normalizeStatus(row.cells[29]?.textContent || employer.status || '') === selectedStatus
           || normalizeStatus(soaInfo.stage).includes(selectedStatus);
       }
     }
 
-    const matchesView = !selectedView || row.dataset.assignedView === selectedView;
+    const empAddress = [employer.address, employer.address_city, employer.address_barangay, employer.address_state, employer.address_line1, row.cells[3]?.textContent].filter(Boolean).join(' ').toLowerCase();
+    const matchesAddress = !selectedAddress || empAddress.includes(selectedAddress);
+
+    const rowAssignedView = (row.dataset.assignedView || employer.assigned_view || '').trim();
+    const matchesView = !selectedView || rowAssignedView === selectedView;
 
     let matchesSheet = true;
     if (activeSheet === 'RP') matchesSheet = payerType === 'Regular Payer';
     else if (activeSheet === 'IP') matchesSheet = payerType === 'Interim Payer';
     else if (activeSheet === 'SP') matchesSheet = payerType === 'Special Payer';
+    else if (activeSheet === 'DUE') matchesSheet = soaInfo.isDue;
 
-    const isVisible = matchesQuery && matchesDate && matchesStatus && matchesView && matchesSheet;
+    const isVisible = matchesQuery && matchesDate && matchesStatus && matchesAddress && matchesView && matchesSheet;
     row.hidden = !isVisible;
   });
 
@@ -830,36 +911,127 @@ const filterAoTable = (viewName) => {
   const countRP = view.querySelector('[data-sheet-count="RP"]');
   const countIP = view.querySelector('[data-sheet-count="IP"]');
   const countSP = view.querySelector('[data-sheet-count="SP"]');
+  const countDUE = view.querySelector('[data-sheet-count="DUE"]');
   if (countAll) countAll.textContent = rows.length;
   if (countRP) countRP.textContent = rpCount;
   if (countIP) countIP.textContent = ipCount;
   if (countSP) countSP.textContent = spCount;
+  if (countDUE) countDUE.textContent = dueCount;
+
+  // Urgent Action Notification Banner in this AO view
+  const banner = view.querySelector('.ao-urgent-banner');
+  if (banner) {
+    const bannerCount = banner.querySelector('[data-banner-count]');
+    if (bannerCount) bannerCount.textContent = dueCount;
+    banner.hidden = dueCount === 0;
+  }
 
   updateSoaReminders();
 };
 
-const getDashboardMetrics = (values) => {
-  const total = values.length;
-  const settled = values.filter((row) => (row[24] || '').toLowerCase().includes('settled')).length;
-  const unsettled = values.filter((row) => !(row[24] || '').toLowerCase().includes('settled')).length;
-  const billed = values.reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const settledAmount = values.filter((row) => (row[24] || '').toLowerCase().includes('settled'))
-    .reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const unsettledAmount = values.filter((row) => !(row[24] || '').toLowerCase().includes('settled'))
-    .reduce((sum, row) => sum + parseAmount(row[8]), 0);
-  const unregistered = values.filter((row) => (row[24] || '').toLowerCase().includes('not yet registered')).length;
-  const registered = total - unregistered;
+const getDashboardEmployers = (viewName) => {
+  const selector = (!viewName || viewName === 'MasterFile')
+    ? '.ao-view[data-ao-view="MasterFile"] .ao-table tbody tr[data-employer-id]'
+    : `.ao-view[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`;
+  return [...document.querySelectorAll(selector)].map((row) => {
+    try {
+      return JSON.parse(row.dataset.employer || '{}');
+    } catch {
+      return {};
+    }
+  }).filter((emp) => emp.id);
+};
+
+const getDashboardMetrics = (employersOrRows, customTarget = null) => {
+  let employers = [];
+  if (Array.isArray(employersOrRows)) {
+    if (employersOrRows.length > 0 && typeof employersOrRows[0] === 'object' && !Array.isArray(employersOrRows[0])) {
+      employers = employersOrRows;
+    } else {
+      employers = employersOrRows.map((row) => ({
+        id: true,
+        employer_number: row[0],
+        payer_type: row[2],
+        principal: parseAmount(row[5]),
+        total_amount: parseAmount(row[8]),
+        payment_total: parseAmount(row[12]),
+        soa_date: row[13],
+        status: row[29] || row[24],
+      }));
+    }
+  }
+
+  const total = employers.length;
+  const settled = employers.filter((e) => (e.status || '').toLowerCase().includes('settled')).length;
+  const unsettled = total - settled;
+  const soa1Count = employers.filter((e) => (e.status || '').toLowerCase().includes('1st soa')).length;
+  const soa2Count = employers.filter((e) => (e.status || '').toLowerCase().includes('2nd soa')).length;
+  const soa3Count = employers.filter((e) => (e.status || '').toLowerCase().includes('3rd soa')).length;
+  const legalCount = employers.filter((e) => (e.status || '').toLowerCase().includes('legal')).length;
+
+  let dueCount = 0;
+  employers.forEach((emp) => {
+    if (getEmployerSoaInfo(emp).isDue) dueCount += 1;
+  });
+
+  const pendingSoa = employers.filter((e) => !e.soa_date && !(e.status || '').toLowerCase().includes('settled')).length;
+
+  const missingAmount = employers.filter((e) => {
+    const isRegular = (e.payer_type || '').toLowerCase().includes('regular') || (e.payer_type || '').includes('RP');
+    const principal = Number(e.principal || 0);
+    const totalAmount = Number(e.total_amount || 0);
+    return !isRegular && (principal === 0 && totalAmount === 0);
+  }).length;
+
+  const empNumbers = employers.map((e) => (e.employer_number || '').trim()).filter(Boolean);
+  const duplicatesSet = new Set();
+  const seenEmp = new Set();
+  empNumbers.forEach((num) => {
+    if (seenEmp.has(num)) duplicatesSet.add(num);
+    else seenEmp.add(num);
+  });
+  const duplicateCount = duplicatesSet.size;
+
+  const rp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('regular') || (e.payer_type || '').includes('RP')).length;
+  const sp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('special') || (e.payer_type || '').includes('SP')).length;
+  const ip = total - rp - sp;
+  const ipSp = ip + sp;
+
+  const billed = employers.reduce((sum, e) => sum + Number(e.soa3_total || e.soa2_total || e.total_amount || 0), 0);
+  const paid = employers.reduce((sum, e) => sum + Number(e.payment_total || 0), 0);
+  const settledAmount = employers.filter((e) => (e.status || '').toLowerCase().includes('settled'))
+    .reduce((sum, e) => sum + Number(e.soa3_total || e.soa2_total || e.total_amount || 0), 0);
+  const unsettledAmount = Math.max(0, billed - paid);
+
+  const targetAmount = customTarget ?? 15000000;
+  const targetPercent = targetAmount ? ((paid / targetAmount) * 100).toFixed(2) : '0.00';
+  const accomplishmentPercent = billed > 0 ? ((paid / billed) * 100).toFixed(2) : '0.00';
 
   return {
     total,
     settled,
     unsettled,
+    soa1Count,
+    soa2Count,
+    soa3Count,
+    legalCount,
+    dueCount,
+    pendingSoa,
+    missingAmount,
+    duplicateCount,
+    rp,
+    ip,
+    sp,
+    ipSp,
+    billedVal: billed,
+    paidVal: paid,
+    unsettledVal: unsettledAmount,
     completion: `${total ? ((settled / total) * 100).toFixed(2) : '0.00'}%`,
-    billed: formatAmount(billed),
-    settledAmount: formatAmount(settledAmount),
-    unsettledAmount: formatAmount(unsettledAmount),
-    registered,
-    unregistered,
+    billed: `₱${formatAmount(billed)}`,
+    paid: `₱${formatAmount(paid)}`,
+    settledAmount: `₱${formatAmount(settledAmount)}`,
+    unsettledAmount: `₱${formatAmount(unsettledAmount)}`,
+    accomplishmentRate: `${accomplishmentPercent}%`,
   };
 };
 
@@ -881,81 +1053,159 @@ const navigateToView = (viewName) => {
   });
   document.querySelector('.ao-views').classList.toggle('is-active', !isDashboard && !isEmployerForm);
   mainNav.dataset.activeView = viewName;
+
+  if (['AO1', 'AO2', 'AO3', 'MasterFile'].includes(viewName)) {
+    filterAoTable(viewName);
+  }
+  updateSoaReminders();
 };
 
 const refreshMainDashboard = () => {
-  const officerViewName = getOfficerView(currentUser?.role);
-  const dashboardMetrics = getDashboardMetrics(getTableEmployers(officerViewName || 'MasterFile'));
+  const masterEmployers = getDashboardEmployers('MasterFile');
+  const dashboardMetrics = getDashboardMetrics(masterEmployers);
+
   Object.entries(dashboardMetrics).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-main-metric="${name}"]`);
-    if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
+    if (metric) metric.textContent = value;
   });
-  ['settled', 'unsettled'].forEach((name) => {
+  ['settled', 'unsettled', 'dueCount', 'legalCount', 'pendingSoa', 'missingAmount', 'duplicateCount', 'rp', 'ipSp'].forEach((name) => {
     const metric = document.querySelector(`[data-status-metric="${name}"]`);
-    if (metric) metric.textContent = dashboardMetrics[name];
+    if (metric) metric.textContent = dashboardMetrics[name] ?? 0;
   });
 
+  // Branch Segmented Delinquency Recovery Bar Updates
+  const totalBilledVal = dashboardMetrics.billedVal || 0;
+  const totalPaidVal = dashboardMetrics.paidVal || 0;
+  
+  const legalAmount = masterEmployers
+    .filter((e) => (e.status || '').toLowerCase().includes('legal'))
+    .reduce((sum, e) => sum + Number(e.soa3_total || e.soa2_total || e.total_amount || 0), 0);
+  const activeDemandAmount = Math.max(0, totalBilledVal - totalPaidVal - legalAmount);
+
+  const paidPct = totalBilledVal > 0 ? ((totalPaidVal / totalBilledVal) * 100) : 0;
+  const activePct = totalBilledVal > 0 ? ((activeDemandAmount / totalBilledVal) * 100) : 0;
+  const legalPct = totalBilledVal > 0 ? ((legalAmount / totalBilledVal) * 100) : 0;
+
+  const segCollected = document.getElementById('segCollected');
+  const segSoa = document.getElementById('segSoa');
+  const segLegal = document.getElementById('segLegal');
+  if (segCollected) segCollected.style.width = `${paidPct.toFixed(2)}%`;
+  if (segSoa) segSoa.style.width = `${activePct.toFixed(2)}%`;
+  if (segLegal) segLegal.style.width = `${legalPct.toFixed(2)}%`;
+
+  const legendPaid = document.getElementById('legendPaid');
+  const legendPaidPct = document.getElementById('legendPaidPct');
+  const legendActive = document.getElementById('legendActive');
+  const legendActivePct = document.getElementById('legendActivePct');
+  const legendLegal = document.getElementById('legendLegal');
+  const legendLegalPct = document.getElementById('legendLegalPct');
+  if (legendPaid) legendPaid.textContent = `₱${formatAmount(totalPaidVal)}`;
+  if (legendPaidPct) legendPaidPct.textContent = `${paidPct.toFixed(1)}%`;
+  if (legendActive) legendActive.textContent = `₱${formatAmount(activeDemandAmount)}`;
+  if (legendActivePct) legendActivePct.textContent = `${activePct.toFixed(1)}%`;
+  if (legendLegal) legendLegal.textContent = `₱${formatAmount(legalAmount)}`;
+  if (legendLegalPct) legendLegalPct.textContent = `${legalPct.toFixed(1)}%`;
+
+  const targetLabel = document.getElementById('targetProgressLabel');
+  const targetBadge = document.getElementById('targetProgressBadge');
+  if (targetLabel) targetLabel.textContent = `${dashboardMetrics.paid} Collected / ${dashboardMetrics.billed} Total Collectibles`;
+  if (targetBadge) targetBadge.textContent = `${dashboardMetrics.accomplishmentRate} RECOVERED`;
+
+  // Branch Performance Table breakdown
   const branchMetrics = ['AO1', 'AO2', 'AO3'].map((viewName) => ({
     viewName,
-    metrics: branchSummary?.[viewName] || getDashboardMetrics(getTableEmployers(viewName)),
+    metrics: getDashboardMetrics(getDashboardEmployers(viewName)),
   }));
+
   branchMetrics.forEach(({ viewName, metrics }) => {
     const row = document.querySelector(`[data-branch-row="${viewName}"]`);
-    Object.entries(metrics).forEach(([name, value]) => {
-      const metric = row?.querySelector(`[data-branch-metric="${name}"]`);
-      if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
-    });
+    if (!row) return;
+    row.querySelector('[data-branch-metric="rp"]').textContent = metrics.rp;
+    row.querySelector('[data-branch-metric="ip"]').textContent = metrics.ip;
+    row.querySelector('[data-branch-metric="sp"]').textContent = metrics.sp;
+    row.querySelector('[data-branch-metric="total"]').textContent = metrics.total;
+    row.querySelector('[data-branch-metric="settled"]').textContent = metrics.settled;
+    row.querySelector('[data-branch-metric="unsettled"]').textContent = metrics.unsettled;
+    row.querySelector('[data-branch-metric="billed"]').textContent = formatAmount(metrics.billedVal);
+    row.querySelector('[data-branch-metric="paid"]').textContent = formatAmount(metrics.paidVal);
+    const balanceCell = row.querySelector('[data-branch-metric="balance"]');
+    if (balanceCell) balanceCell.textContent = formatAmount(metrics.unsettledVal);
+    row.querySelector('[data-branch-metric="accomplishment"]').textContent = metrics.accomplishmentRate || '0.00%';
   });
 
-  const branchTotals = ['total', 'settled', 'unsettled', 'billed', 'unsettledAmount'].reduce((totals, name) => {
-    totals[name] = branchMetrics.reduce((sum, branch) => sum + parseAmount(branch.metrics[name]), 0);
+  const branchTotals = ['total', 'settled', 'unsettled', 'rp', 'ip', 'sp'].reduce((totals, name) => {
+    totals[name] = branchMetrics.reduce((sum, branch) => sum + (branch.metrics[name] || 0), 0);
     return totals;
   }, {});
-  branchTotals.completion = `${branchTotals.total ? ((branchTotals.settled / branchTotals.total) * 100).toFixed(2) : '0.00'}%`;
+  const totalBilled = branchMetrics.reduce((sum, branch) => sum + (branch.metrics.billedVal || 0), 0);
+  const totalPaid = branchMetrics.reduce((sum, branch) => sum + (branch.metrics.paidVal || 0), 0);
+  const totalBalance = Math.max(0, totalBilled - totalPaid);
+  const totalAccomplishment = totalBilled > 0 ? ((totalPaid / totalBilled) * 100).toFixed(2) : '0.00';
+
+  branchTotals.billed = formatAmount(totalBilled);
+  branchTotals.paid = formatAmount(totalPaid);
+  branchTotals.balance = formatAmount(totalBalance);
+  branchTotals.accomplishment = `${totalAccomplishment}%`;
+
   Object.entries(branchTotals).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-branch-total="${name}"]`);
-    if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
+    if (metric) metric.textContent = value;
   });
+
+  // Dynamic Executive Action Insights
   const leadingBranch = branchMetrics.reduce((leading, branch) => (
     branch.metrics.total > leading.metrics.total ? branch : leading
-  ));
-  document.querySelector('[data-insight="leadingBranch"]').textContent = `${leadingBranch.viewName} currently has the most encoded records (${leadingBranch.metrics.total}).`;
-  document.querySelector('[data-insight="completion"]').textContent = `Overall completion rate: ${dashboardMetrics.completion}`;
-  document.querySelector('[data-insight="billing"]').textContent = `Total billed: P${dashboardMetrics.billed} | Unsettled: P${dashboardMetrics.unsettledAmount}`;
-  document.querySelector('[data-insight="settlement"]').textContent = `Settled: ${dashboardMetrics.settled} | Unsettled: ${dashboardMetrics.unsettled}`;
-  document.querySelector('[data-insight="registration"]').textContent = `Registered: ${dashboardMetrics.registered} | Not Yet Registered: ${dashboardMetrics.unregistered}`;
+  ), branchMetrics[0]);
+
+  const insightAlerts = document.querySelector('[data-insight="alerts"]');
+  if (insightAlerts) {
+    insightAlerts.textContent = dashboardMetrics.dueCount > 0
+      ? `${dashboardMetrics.dueCount} accounts have reached the 15-day compliance threshold and require next SOA escalation.`
+      : 'All SOA accounts are currently compliant within their 15-day action windows.';
+  }
+
+  const insightLead = document.querySelector('[data-insight="leadingBranch"]');
+  if (insightLead) {
+    insightLead.textContent = `${leadingBranch.viewName} leads with ${leadingBranch.metrics.total} encoded records and ₱${formatAmount(leadingBranch.metrics.paidVal)} collections.`;
+  }
+
+  const insightBilling = document.querySelector('[data-insight="billing"]');
+  if (insightBilling) {
+    insightBilling.textContent = `${dashboardMetrics.paid} collected against ${dashboardMetrics.billed} total delinquency receivables (${dashboardMetrics.accomplishmentRate} recovery).`;
+  }
+
   refreshCharts();
+  updateSoaReminders();
 };
 
 const refreshCharts = () => {
   if (!pieChart || !barChart || !groupedBarChart) return;
 
-  const readMetric = (selector) => parseAmount(document.querySelector(selector)?.textContent.replace('%', ''));
-  const branchNames = ['AO1', 'AO2', 'AO3'];
-  const branchMetrics = branchNames.map((viewName) => ({
-    total: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="total"]`),
-    settled: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="settled"]`),
-    unsettled: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="unsettled"]`),
-    billed: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="billed"]`),
-    unsettledAmount: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="unsettledAmount"]`),
-  }));
+  const branchMetrics = ['AO1', 'AO2', 'AO3'].map((viewName) => getDashboardMetrics(getDashboardEmployers(viewName)));
+  const masterMetrics = getDashboardMetrics(getDashboardEmployers('MasterFile'));
 
-  pieChart.data.datasets[0].data = branchMetrics.map((branch) => branch.total);
+  // Pie chart: Distribution by Branch
+  pieChart.data.datasets[0].data = branchMetrics.map((b) => b.total);
+
+  // Bar chart: 5-Stage SOA Escalation Pipeline
   barChart.data.datasets[0].data = [
-    readMetric('[data-main-metric="settled"]'),
-    readMetric('[data-main-metric="unsettled"]'),
+    masterMetrics.soa1Count,
+    masterMetrics.soa2Count,
+    masterMetrics.soa3Count,
+    masterMetrics.legalCount,
+    masterMetrics.settled,
   ];
+
+  // Grouped Bar Chart
   groupedBarChart.data.datasets.forEach((dataset, index) => {
-    const branch = branchMetrics[index];
-    if (branch) dataset.data = [branch.total, branch.settled, branch.unsettled, branch.billed, branch.unsettledAmount];
+    if (index < 3) {
+      const b = branchMetrics[index];
+      dataset.data = [b.total, b.settled, b.unsettled, b.billedVal / 1000, b.paidVal / 1000];
+    } else {
+      dataset.data = [masterMetrics.total, masterMetrics.settled, masterMetrics.unsettled, masterMetrics.billedVal / 1000, masterMetrics.paidVal / 1000];
+    }
   });
-  groupedBarChart.data.datasets[3].data = [
-    readMetric('[data-branch-total="total"]'),
-    readMetric('[data-branch-total="settled"]'),
-    readMetric('[data-branch-total="unsettled"]'),
-    readMetric('[data-branch-total="billed"]'),
-    readMetric('[data-branch-total="unsettledAmount"]'),
-  ];
+
   pieChart.update('none');
   barChart.update('none');
   groupedBarChart.update('none');
@@ -966,19 +1216,81 @@ const updatePayerTypeVisibility = () => {
   const isRegular = payerType === 'Regular Payer';
   const collectiblesGroup = document.getElementById('collectiblesFieldsGroup');
   if (collectiblesGroup) collectiblesGroup.hidden = isRegular;
+
   if (isRegular) {
     employerForm.elements.principal.value = '0.00';
     employerForm.elements.penalty.value = '0.00';
     employerForm.elements.interest.value = '0.00';
     employerForm.elements.totalAmount.value = '0.00';
   }
+
+  if (!editingEmployerId) {
+    // Registration Mode: Auto-update status lock based on Payer Type (RP -> Settled, IP/SP -> 1st SOA Served)
+    configureStatusDropdown(null);
+  } else {
+    // Edit Mode: Enable full dropdown, but if changed to Regular Payer, suggest Settled
+    const currentStatus = employerForm.elements.status.value;
+    const updatedStatus = isRegular && currentStatus !== 'Settled' ? 'Settled' : currentStatus;
+    configureStatusDropdown({ id: editingEmployerId, status: updatedStatus });
+    if (employerForm.elements.status) employerForm.elements.status.value = updatedStatus;
+  }
 };
 
 employerForm.elements.payerType?.addEventListener('change', updatePayerTypeVisibility);
 
+const formTabButtons = document.querySelectorAll('.form-tab-btn');
+const formTabPanes = document.querySelectorAll('.form-tab-pane');
+const prevTabBtn = document.getElementById('prevTabBtn');
+const nextTabBtn = document.getElementById('nextTabBtn');
+const cancelEmployerFormBtn = document.getElementById('cancelEmployerFormBtn');
+const tabIds = ['tab-basic', 'tab-soa1', 'tab-soa2', 'tab-soa3', 'tab-legal'];
+
+const setEmployerFormTab = (tabId) => {
+  const targetIndex = tabIds.indexOf(tabId);
+  if (targetIndex === -1) return;
+
+  formTabButtons.forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.formTab === tabId);
+  });
+  formTabPanes.forEach((pane) => {
+    pane.classList.toggle('is-active', pane.id === tabId);
+  });
+
+  if (prevTabBtn) prevTabBtn.disabled = targetIndex === 0;
+  if (nextTabBtn) nextTabBtn.disabled = targetIndex === tabIds.length - 1;
+};
+
+formTabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => setEmployerFormTab(btn.dataset.formTab));
+});
+
+if (prevTabBtn) {
+  prevTabBtn.addEventListener('click', () => {
+    const currentActive = document.querySelector('.form-tab-pane.is-active');
+    const currentIndex = tabIds.indexOf(currentActive?.id || 'tab-basic');
+    if (currentIndex > 0) setEmployerFormTab(tabIds[currentIndex - 1]);
+  });
+}
+
+if (nextTabBtn) {
+  nextTabBtn.addEventListener('click', () => {
+    const currentActive = document.querySelector('.form-tab-pane.is-active');
+    const currentIndex = tabIds.indexOf(currentActive?.id || 'tab-basic');
+    if (currentIndex < tabIds.length - 1) setEmployerFormTab(tabIds[currentIndex + 1]);
+  });
+}
+
+if (cancelEmployerFormBtn) {
+  cancelEmployerFormBtn.addEventListener('click', () => closeEmployerModal());
+}
+
+const employerModal = document.querySelector('.employer-modal');
+const employerModalSubtitle = document.querySelector('.modal-header-subtitle');
+
 const openEmployerModal = (viewName) => {
   editingEmployerId = null;
   employerForm.reset();
+  setEmployerFormTab('tab-basic');
   configureStatusDropdown(null);
   if (employerForm.elements.payerType) employerForm.elements.payerType.value = 'Interim Payer';
   updatePayerTypeVisibility();
@@ -986,11 +1298,13 @@ const openEmployerModal = (viewName) => {
   loadAddressLocations({ useDefaults: true });
   employerForm.elements.assignedView.value = getOfficerView(currentUser?.role) || viewName;
   employerForm.classList.remove('is-editing');
+  if (employerModal) employerModal.classList.remove('is-editing');
   updateEmployerTotals();
   modalTitle.textContent = isOfficerRole(currentUser?.role)
-    ? "Employer's Data Form"
-    : `Employer's Data Form - ${employerForm.elements.assignedView.value}`;
-  employerForm.querySelector('.employer-submit-btn').textContent = 'SUBMIT';
+    ? "Employer Registration Form"
+    : `Employer Registration Form - ${employerForm.elements.assignedView.value}`;
+  if (employerModalSubtitle) employerModalSubtitle.textContent = "Register a new employer account and encode initial 1st SOA billing assessment";
+  employerForm.querySelector('.employer-submit-btn').textContent = 'REGISTER EMPLOYER';
   navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
 };
@@ -1000,6 +1314,7 @@ const openEmployerEdit = async (row) => {
   if (!employer.id) return;
   editingEmployerId = employer.id;
   employerForm.reset();
+  setEmployerFormTab('tab-basic');
   configureStatusDropdown(employer);
   employerForm.elements.addressCountry.value = employer.address_country || '';
   Object.entries({
@@ -1022,23 +1337,36 @@ const openEmployerEdit = async (row) => {
     paymentTotal: employer.payment_total,
     billingDate: employer.billing_date,
     soaDate: employer.soa_date,
+    personReceived: employer.person_received,
     soa2Date: employer.soa2_date,
+    soa2PersonReceived: employer.soa2_person_received,
+    soa2Principal: employer.soa2_principal,
+    soa2Penalty: employer.soa2_penalty,
+    soa2Interest: employer.soa2_interest,
+    soa2Total: employer.soa2_total,
     soa3Date: employer.soa3_date,
+    soa3PersonReceived: employer.soa3_person_received,
+    soa3Principal: employer.soa3_principal,
+    soa3Penalty: employer.soa3_penalty,
+    soa3Interest: employer.soa3_interest,
+    soa3Total: employer.soa3_total,
+    billingDate: employer.billing_date,
+    billingPersonReceived: employer.billing_person_received,
     coverageDate: employer.coverage_date,
     legalReferralDate: employer.legal_referral_date,
     demandLetterDate: employer.demand_letter_date,
     demandLetterReceivedDate: employer.demand_letter_received_date,
+    demandPersonReceived: employer.demand_person_received || employer.person_received,
     handlingLawyer: employer.handling_lawyer,
     docketNumber: employer.docket_number,
     caseDate: employer.case_date,
-    personReceived: employer.person_received,
     status: employer.status,
   }).forEach(([field, value]) => {
     if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
   });
   updatePayerTypeVisibility();
   amountFieldNames.forEach((fieldName) => {
-    employerForm.elements[fieldName].value = formatAmount(employerForm.elements[fieldName].value);
+    if (employerForm.elements[fieldName]) employerForm.elements[fieldName].value = formatAmount(employerForm.elements[fieldName].value);
   });
   updateBarangayVisibility();
   await loadAddressLocations();
@@ -1053,9 +1381,11 @@ const openEmployerEdit = async (row) => {
   if (employer.address_barangay) barangaySelect.value = employer.address_barangay;
   postalCodeInput.value = employer.address_postal_code || postalCodeInput.value;
   postalCodeInput.readOnly = Boolean(postalCodeInput.value);
-  modalTitle.textContent = "Edit Employer's Data";
+  modalTitle.textContent = "Edit Employer Record & Escalation";
+  if (employerModalSubtitle) employerModalSubtitle.textContent = "Update account details, assess next SOA stages, and record settlements";
   employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
   employerForm.classList.add('is-editing');
+  if (employerModal) employerModal.classList.add('is-editing');
   updateEmployerTotals();
   navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
@@ -1101,12 +1431,30 @@ const createOrgChartNode = (user, isRoot = false) => {
   node.dataset.orgRole = normalizeOrgChartRole(user.role);
 
   const role = normalizeOrgChartRole(user.role);
-  if (isRoot || role === 'Admin') {
-    const roleLabel = document.createElement('span');
-    roleLabel.className = 'org-role';
-    roleLabel.textContent = isRoot ? 'ROOT' : 'ADMIN';
-    node.appendChild(roleLabel);
+  const roleLabel = document.createElement('span');
+  roleLabel.className = 'org-role';
+  roleLabel.textContent = isRoot || role === 'Admin' ? 'BRANCH ADMINISTRATOR' : role.toUpperCase();
+  node.appendChild(roleLabel);
+
+  const avatarWrap = document.createElement('div');
+  avatarWrap.className = 'org-avatar-wrap';
+  avatarWrap.title = 'Click card to edit officer profile & assigned jurisdiction';
+
+  const avatarImg = document.createElement('img');
+  avatarImg.className = 'org-avatar-img';
+  const initialLetter = (user.full_name || user.username || 'U')[0].toUpperCase();
+
+  if (user.avatar_url) {
+    avatarImg.src = user.avatar_url;
+    avatarWrap.appendChild(avatarImg);
+  } else {
+    const fallback = document.createElement('span');
+    fallback.className = 'org-avatar-fallback';
+    fallback.textContent = initialLetter;
+    avatarWrap.appendChild(fallback);
   }
+
+  node.appendChild(avatarWrap);
 
   const name = document.createElement('h3');
   name.textContent = user.full_name || user.username || user.email;
@@ -1122,17 +1470,40 @@ const createOrgChartNode = (user, isRoot = false) => {
   node.appendChild(email);
 
   const userRole = document.createElement('p');
-  userRole.textContent = role;
+  userRole.textContent = isRoot || role === 'Admin' ? 'Branch Head / Administrator' : role;
   node.appendChild(userRole);
+
+  const jurisdictionBox = document.createElement('div');
+  jurisdictionBox.className = 'org-jurisdiction-box';
+  const jurisdictionLabel = document.createElement('span');
+  jurisdictionLabel.className = 'org-jurisdiction-label';
+  jurisdictionLabel.textContent = 'ASSIGNED JURISDICTION:';
+  const jurisdictionText = document.createElement('span');
+  jurisdictionText.className = 'org-jurisdiction-text';
+
+  let defaultArea = 'Toledo Coverage Area';
+  if (isRoot || role === 'Admin') defaultArea = 'SSS Toledo Branch (Overall Supervision)';
+  else if (role.includes('1')) defaultArea = 'Toledo City (Urban & Commercial Districts)';
+  else if (role.includes('2')) defaultArea = 'Balamban & Asturias';
+  else if (role.includes('3')) defaultArea = 'Pinamungajan, Aloguinsan, & Tuburan';
+
+  jurisdictionText.textContent = user.assigned_places || defaultArea;
+  jurisdictionBox.appendChild(jurisdictionLabel);
+  jurisdictionBox.appendChild(jurisdictionText);
+  node.appendChild(jurisdictionBox);
+
+  node.addEventListener('click', () => {
+    openEditOfficerModal(user);
+  });
+
   return node;
 };
 
 const drawOrgChartLines = () => {
   orgChartContent.querySelector('.org-chart-lines')?.remove();
-  const rootNode = orgChartGroups.root.querySelector('.org-node-root');
-  const aoNodes = [...orgChartGroups.users.querySelectorAll('[data-org-role^="Account Officer "]')]
-    .filter((node) => /^Account Officer [1-3]$/.test(node.dataset.orgRole));
-  if (!rootNode || aoNodes.length !== 3) return;
+  const rootNode = orgChartGroups.root.querySelector('.org-node');
+  const aoNodes = [...orgChartGroups.users.querySelectorAll('.org-node')];
+  if (!rootNode || !aoNodes.length) return;
 
   const contentBounds = orgChartContent.getBoundingClientRect();
   const rootBounds = rootNode.getBoundingClientRect();
@@ -1159,10 +1530,11 @@ const drawOrgChartLines = () => {
 
 const renderOrgChartUsers = (users) => {
   Object.values(orgChartGroups).forEach((group) => group.replaceChildren());
-  users.filter((user) => user.is_active !== false).forEach((user) => {
+  users.filter((user) => user.is_active !== false && user.role !== 'Super Admin').forEach((user) => {
     const role = normalizeOrgChartRole(user.role);
-    const groupName = role === 'Super Admin' ? 'root' : role === 'Admin' ? 'admin' : 'users';
-    orgChartGroups[groupName].appendChild(createOrgChartNode(user, groupName === 'root'));
+    const isRoot = role === 'Admin';
+    const groupName = isRoot ? 'root' : 'users';
+    orgChartGroups[groupName].appendChild(createOrgChartNode(user, isRoot));
   });
   window.requestAnimationFrame(drawOrgChartLines);
 };
@@ -1212,6 +1584,127 @@ const closeOrgChart = () => {
   orgChartModal.hidden = true;
   navigateToView(orgChartReturnView);
 };
+
+const editOfficerModal = document.getElementById('editOfficerModal');
+const editOfficerForm = document.getElementById('editOfficerForm');
+const editOfficerClose = document.getElementById('editOfficerClose');
+const editOfficerCancel = document.getElementById('editOfficerCancel');
+const editOfficerError = document.getElementById('editOfficerError');
+const officerPreviewImg = document.getElementById('officerPreviewImg');
+const officerPreviewFallback = document.getElementById('officerPreviewFallback');
+const officerPreviewName = document.getElementById('officerPreviewName');
+const officerPreviewUsername = document.getElementById('officerPreviewUsername');
+const officerPhotoUrlInput = document.getElementById('officerPhotoUrlInput');
+const officerPhotoFileInput = document.getElementById('officerPhotoFileInput');
+
+let currentEditingUser = null;
+
+const openEditOfficerModal = (user) => {
+  currentEditingUser = user;
+  if (!editOfficerForm) return;
+  editOfficerForm.reset();
+  if (editOfficerError) editOfficerError.hidden = true;
+  editOfficerForm.elements.officerId.value = user.id;
+  editOfficerForm.elements.officerFullName.value = user.full_name || '';
+  editOfficerForm.elements.officerPhotoUrl.value = user.avatar_url || '';
+  editOfficerForm.elements.officerAssignedPlaces.value = user.assigned_places || '';
+
+  if (officerPreviewName) officerPreviewName.textContent = user.full_name || user.username || user.email;
+  if (officerPreviewUsername) officerPreviewUsername.textContent = `@${user.username || 'user'}`;
+
+  const initial = (user.full_name || user.username || 'U')[0].toUpperCase();
+  if (officerPreviewFallback) officerPreviewFallback.textContent = initial;
+
+  if (user.avatar_url && officerPreviewImg && officerPreviewFallback) {
+    officerPreviewImg.src = user.avatar_url;
+    officerPreviewImg.hidden = false;
+    officerPreviewFallback.hidden = true;
+  } else if (officerPreviewImg && officerPreviewFallback) {
+    officerPreviewImg.hidden = true;
+    officerPreviewFallback.hidden = false;
+  }
+
+  if (editOfficerModal) {
+    editOfficerModal.hidden = false;
+    editOfficerForm.elements.officerFullName.focus();
+  }
+};
+
+const closeEditOfficerModal = () => {
+  if (editOfficerModal) editOfficerModal.hidden = true;
+  currentEditingUser = null;
+};
+
+if (editOfficerClose) editOfficerClose.addEventListener('click', closeEditOfficerModal);
+if (editOfficerCancel) editOfficerCancel.addEventListener('click', closeEditOfficerModal);
+if (editOfficerModal) {
+  editOfficerModal.addEventListener('click', (e) => {
+    if (e.target === editOfficerModal) closeEditOfficerModal();
+  });
+}
+
+if (officerPhotoFileInput) {
+  officerPhotoFileInput.addEventListener('change', () => {
+    const file = officerPhotoFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (officerPhotoUrlInput) officerPhotoUrlInput.value = e.target.result;
+      if (officerPreviewImg && officerPreviewFallback) {
+        officerPreviewImg.src = e.target.result;
+        officerPreviewImg.hidden = false;
+        officerPreviewFallback.hidden = true;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+if (officerPhotoUrlInput) {
+  officerPhotoUrlInput.addEventListener('input', () => {
+    const url = officerPhotoUrlInput.value.trim();
+    if (url && officerPreviewImg && officerPreviewFallback) {
+      officerPreviewImg.src = url;
+      officerPreviewImg.hidden = false;
+      officerPreviewFallback.hidden = true;
+    } else if (officerPreviewImg && officerPreviewFallback) {
+      officerPreviewImg.hidden = true;
+      officerPreviewFallback.hidden = false;
+    }
+  });
+}
+
+if (editOfficerForm) {
+  editOfficerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentEditingUser) return;
+
+    const full_name = editOfficerForm.elements.officerFullName.value.trim();
+    const avatar_url = editOfficerForm.elements.officerPhotoUrl.value.trim() || null;
+    const assigned_places = editOfficerForm.elements.officerAssignedPlaces.value.trim();
+
+    try {
+      const response = await fetch(`/api/users/${currentEditingUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.accessToken || ''}`,
+        },
+        body: JSON.stringify({ full_name, avatar_url, assigned_places }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update officer.');
+
+      closeEditOfficerModal();
+      loadOrgChartUsers();
+    } catch (err) {
+      if (editOfficerError) {
+        editOfficerError.textContent = err.message;
+        editOfficerError.hidden = false;
+      }
+    }
+  });
+}
 
 window.addEventListener('resize', () => {
   if (!orgChartModal.hidden) drawOrgChartLines();
@@ -1290,41 +1783,53 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
     employer_number: rowValues[0],
     employer_name: rowValues[1],
     payer_type: payerType,
-    billing_date: rowValues[13],
-    soa_date: rowValues[14],
+    soa_date: rowValues[13],
+    person_received: rowValues[14],
     soa2_date: rowValues[15],
-    soa3_date: rowValues[16],
-    status: rowValues[24],
+    soa2_person_received: rowValues[16],
+    soa3_date: rowValues[17],
+    soa3_person_received: rowValues[18],
+    billing_date: rowValues[19],
+    billing_person_received: rowValues[20],
+    status: rowValues[29],
   };
 
   const soaInfo = getEmployerSoaInfo(empData);
 
   targetRow.replaceChildren(...rowValues.map((value, cellIndex) => {
     const cell = document.createElement('td');
-    if (cellIndex === 2) {
+    if (cellIndex === 0) {
+      cell.textContent = formatSssEmployerNumber(value);
+      cell.className = 'td-employer-number';
+    } else if (cellIndex === 2) {
       cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerType}</span>`;
-    } else if (cellIndex === 24) {
+    } else if (cellIndex === 29) {
       cell.className = 'td-status';
       if (soaInfo.stage === 'Settled') {
-        cell.innerHTML = '<span class="status-badge status-badge-settled">✅ Settled</span>';
+        cell.innerHTML = '<span class="status-badge status-badge-settled">Settled</span>';
       } else if (soaInfo.stage === 'Referred to Legal') {
-        cell.innerHTML = '<span class="status-badge status-badge-legal">⚖️ Referred to Legal</span>';
+        cell.innerHTML = '<span class="status-badge status-badge-legal">Referred to Legal</span>';
       } else if (soaInfo.isForwarded) {
-        cell.innerHTML = `<span class="status-badge status-badge-forwarded" title="Forwarded on ${soaInfo.forwardedDate || 'N/A'} &bull; Awaiting ${soaInfo.nextStageCode}">📤 ${soaInfo.stage} (Forwarded)</span>`;
+        cell.innerHTML = `<span class="status-badge status-badge-forwarded" title="Forwarded on ${soaInfo.forwardedDate || 'N/A'} &bull; Awaiting ${soaInfo.nextStageCode}">${soaInfo.stage} (Forwarded)</span>`;
       } else if (soaInfo.isLapsed) {
-        cell.innerHTML = `<span class="status-badge status-badge-lapsed" title="${soaInfo.nextAction}">🚨 ${soaInfo.stage} (${Math.abs(soaInfo.daysRemaining)}d lapsed)</span>`;
+        cell.innerHTML = `<span class="status-badge status-badge-lapsed" title="${soaInfo.nextAction}">${soaInfo.stage} (${Math.abs(soaInfo.daysRemaining)}d lapsed)</span>`;
       } else if (soaInfo.isDueSoon) {
-        cell.innerHTML = `<span class="status-badge status-badge-2nd-soa" title="${soaInfo.nextAction}">⚠️ ${soaInfo.stage} (Due in 24h)</span>`;
+        cell.innerHTML = `<span class="status-badge status-badge-2nd-soa" title="${soaInfo.nextAction}">${soaInfo.stage} (Due in 24h)</span>`;
       } else if (soaInfo.daysRemaining !== null) {
-        cell.innerHTML = `<span class="status-badge status-badge-1st-soa">⏳ ${soaInfo.stage} (${soaInfo.daysRemaining}d left)</span>`;
+        cell.innerHTML = `<span class="status-badge status-badge-1st-soa">${soaInfo.stage} (${soaInfo.daysRemaining}d left)</span>`;
       } else {
         cell.innerHTML = `<span class="status-badge status-badge-pending">${value || '1st SOA Served'}</span>`;
       }
     } else {
-      if (cellIndex === 25) cell.className = 'td-person';
-      cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
-        ? formatAmount(value)
-        : value || '';
+      if ([14, 16, 18, 20, 25].includes(cellIndex)) cell.className = 'td-person';
+      if (cellIndex === 8) cell.classList.add('td-amount-clickable');
+      if (amountFieldIndexes.includes(cellIndex) && value !== '') {
+        cell.textContent = formatAmount(value);
+      } else if (dateFieldIndexes.includes(cellIndex) && value) {
+        cell.textContent = formatDisplayDate(value);
+      } else {
+        cell.textContent = value || '';
+      }
     }
     return cell;
   }));
@@ -1332,16 +1837,28 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
   targetRow.dataset.payerType = payerType;
-  const billingDateCell = targetRow.cells[13];
-  if (billingDateCell) billingDateCell.dataset.date = rowValues[13] || '';
+  const soaDateCell = targetRow.cells[13];
+  if (soaDateCell) soaDateCell.dataset.date = rowValues[13] || '';
   if (employer) targetRow.dataset.employer = JSON.stringify(employer);
   targetRow.classList.toggle('is-due-date', soaInfo.isDue);
+
+  // Per-row action cell: Edit button
+  let actionCell = targetRow.querySelector('.td-row-actions');
+  if (!actionCell) {
+    actionCell = document.createElement('td');
+    actionCell.className = 'td-row-actions';
+    targetRow.appendChild(actionCell);
+  }
+  actionCell.innerHTML = `<button class="row-edit-btn" type="button" title="Edit this employer">Edit</button>`;
+  actionCell.querySelector('.row-edit-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openEmployerEdit(targetRow);
+  });
+
   filterAoTable(viewName);
 
   return true;
 };
-
-const employerToRow = (employer) => employerFields.map((field) => employer[field] || '');
 
 const setTableEditMode = (viewName, isEditing) => {
   const view = document.querySelector(`[data-ao-view="${viewName}"]`);
@@ -1422,6 +1939,7 @@ const loadEmployers = async () => {
     addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id, employer.assigned_view, employer);
     addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view, employer);
   });
+  updateSoaReminders();
 };
 
 const loadEmployerSummary = async () => {
@@ -1677,11 +2195,78 @@ citySelect.addEventListener('change', () => {
   updatePostalCode();
   loadBarangaysForAddress();
 });
-loadAddressLocations({ useDefaults: true });employerForm.addEventListener('submit', async (event) => {
+loadAddressLocations({ useDefaults: true });
+
+employerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(employerForm);
   const payerType = formData.get('payerType') || 'Interim Payer';
   const isRegular = payerType === 'Regular Payer';
+
+  const status = formData.get('status');
+  const soaDate = formData.get('soaDate');
+  const soa2Date = formData.get('soa2Date');
+  const soa3Date = formData.get('soa3Date');
+  const billingDate = formData.get('billingDate');
+  const legalReferralDate = formData.get('legalReferralDate');
+
+  // SSS Delinquency Lifecycle Flow Validation
+  if (status === '2nd SOA Served' || (soa2Date && status !== 'Settled')) {
+    if (!soaDate) {
+      alert('Validation Error: 1st SOA Date must be filled out before advancing to 2nd SOA Served.');
+      setEmployerFormTab('tab-soa1');
+      employerForm.elements.soaDate?.focus();
+      return;
+    }
+  }
+
+  if (status === '3rd SOA Served' || (soa3Date && status !== 'Settled' && status !== 'Referred to Legal')) {
+    if (!soaDate) {
+      alert('Validation Error: 1st SOA Date must be filled out before serving 3rd SOA.');
+      setEmployerFormTab('tab-soa1');
+      employerForm.elements.soaDate?.focus();
+      return;
+    }
+    if (!soa2Date) {
+      alert('Validation Error: 2nd SOA Date must be filled out before advancing to 3rd SOA Served.');
+      setEmployerFormTab('tab-soa2');
+      employerForm.elements.soa2Date?.focus();
+      return;
+    }
+  }
+
+  if (status === 'Referred to Legal') {
+    if (!soaDate) {
+      alert('Validation Error: 1st SOA Date must be filled out before Referral to Legal.');
+      setEmployerFormTab('tab-soa1');
+      employerForm.elements.soaDate?.focus();
+      return;
+    }
+    if (!soa2Date) {
+      alert('Validation Error: 2nd SOA Date must be filled out before Referral to Legal.');
+      setEmployerFormTab('tab-soa2');
+      employerForm.elements.soa2Date?.focus();
+      return;
+    }
+    if (!soa3Date) {
+      alert('Validation Error: 3rd SOA Date must be filled out before Referral to Legal.');
+      setEmployerFormTab('tab-soa3');
+      employerForm.elements.soa3Date?.focus();
+      return;
+    }
+    if (!billingDate) {
+      alert('Validation Error: Final Billing Notice Date must be served before Referral to Legal.');
+      setEmployerFormTab('tab-legal');
+      employerForm.elements.billingDate?.focus();
+      return;
+    }
+    if (!legalReferralDate) {
+      alert('Validation Error: Date Referred to Legal is required when status is Referred to Legal.');
+      setEmployerFormTab('tab-legal');
+      employerForm.elements.legalReferralDate?.focus();
+      return;
+    }
+  }
 
   const principal = isRegular ? 0 : parseAmount(formData.get('principal'));
   const penalty = isRegular ? 0 : parseAmount(formData.get('penalty'));
@@ -1719,18 +2304,30 @@ loadAddressLocations({ useDefaults: true });employerForm.addEventListener('submi
       + parseAmount(formData.get('paymentPenalty'))
     ).toFixed(2)),
     billing_date: formData.get('billingDate') || null,
+    billing_person_received: formData.get('billingDate') ? (formData.get('billingPersonReceived') || '') : '',
     coverage_date: formData.get('coverageDate') || null,
     soa_date: formData.get('soaDate') || null,
+    person_received: formData.get('soaDate') ? (formData.get('personReceived') || '') : '',
     soa2_date: formData.get('soa2Date') || null,
+    soa2_person_received: formData.get('soa2Date') ? (formData.get('soa2PersonReceived') || '') : '',
+    soa2_principal: parseAmount(formData.get('soa2Principal')),
+    soa2_penalty: parseAmount(formData.get('soa2Penalty')),
+    soa2_interest: parseAmount(formData.get('soa2Interest')),
+    soa2_total: parseAmount(formData.get('soa2Total')),
     soa3_date: formData.get('soa3Date') || null,
+    soa3_person_received: formData.get('soa3Date') ? (formData.get('soa3PersonReceived') || '') : '',
+    soa3_principal: parseAmount(formData.get('soa3Principal')),
+    soa3_penalty: parseAmount(formData.get('soa3Penalty')),
+    soa3_interest: parseAmount(formData.get('soa3Interest')),
+    soa3_total: parseAmount(formData.get('soa3Total')),
     legal_referral_date: formData.get('legalReferralDate') || null,
     demand_letter_date: formData.get('demandLetterDate') || null,
     demand_letter_received_date: formData.get('demandLetterReceivedDate') || null,
+    demand_person_received: formData.get('demandLetterDate') ? (formData.get('demandPersonReceived') || '') : '',
     handling_lawyer: formData.get('handlingLawyer') || '',
     docket_number: formData.get('docketNumber') || '',
     case_date: formData.get('caseDate') || null,
     status: formData.get('status'),
-    person_received: formData.get('personReceived') || '',
   };
 
   const response = await fetch('/api/employers', {
@@ -1773,6 +2370,27 @@ document.querySelectorAll('.ao-sheet-tab').forEach((tabButton) => {
   });
 });
 
+// AO Urgent Action Banner Button Listeners
+document.querySelectorAll('.ao-banner-filter-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const viewSection = btn.closest('.ao-view');
+    const viewName = viewSection?.dataset.aoView;
+    const dueTab = viewSection?.querySelector('.ao-sheet-tab[data-sheet="DUE"]');
+    if (dueTab) {
+      viewSection.querySelectorAll('.ao-sheet-tab').forEach((t) => t.classList.remove('active'));
+      dueTab.classList.add('active');
+      if (viewName) filterAoTable(viewName);
+    }
+  });
+});
+
+document.querySelectorAll('.ao-banner-review-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    updateSoaReminders();
+    if (soaReminderModal) soaReminderModal.hidden = false;
+  });
+});
+
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
   body.innerHTML = '<tr>'.concat('<td></td>'.repeat(26), '</tr>').repeat(21);
 });
@@ -1801,29 +2419,81 @@ if (soaReminderModal) {
   });
 }
 
-// Auto-advance Status dropdown when dates are entered
+// Auto-format SSS Employer Number to XX-XXXXXXX-X
+const employerNumberInput = employerForm?.elements?.employerNumber;
+if (employerNumberInput) {
+  employerNumberInput.addEventListener('input', (e) => {
+    let val = e.target.value.replace(/\D/g, '').slice(0, 10);
+    if (val.length > 9) {
+      val = `${val.slice(0, 2)}-${val.slice(2, 9)}-${val.slice(9)}`;
+    } else if (val.length > 2) {
+      val = `${val.slice(0, 2)}`;
+    }
+    e.target.value = val;
+  });
+}
+
+// Auto-advance Status dropdown safely when dates are entered (Never downgrade Settled accounts)
 employerForm.elements.soaDate?.addEventListener('change', () => {
-  if (employerForm.elements.soaDate.value && (!employerForm.elements.status.value || employerForm.elements.status.value === '1st SOA Served')) {
+  const currentStatus = employerForm.elements.status.value;
+  if (employerForm.elements.soaDate.value && (!currentStatus || currentStatus === '1st SOA Served')) {
     employerForm.elements.status.value = '1st SOA Served';
   }
 });
 
 employerForm.elements.soa2Date?.addEventListener('change', () => {
-  if (employerForm.elements.soa2Date.value && (!employerForm.elements.status.value || employerForm.elements.status.value === '1st SOA Served')) {
+  const currentStatus = employerForm.elements.status.value;
+  if (employerForm.elements.soa2Date.value && (currentStatus === '1st SOA Served' || !currentStatus)) {
     employerForm.elements.status.value = '2nd SOA Served';
   }
 });
 
 employerForm.elements.soa3Date?.addEventListener('change', () => {
-  if (employerForm.elements.soa3Date.value) {
+  const currentStatus = employerForm.elements.status.value;
+  if (employerForm.elements.soa3Date.value && (currentStatus === '1st SOA Served' || currentStatus === '2nd SOA Served' || !currentStatus)) {
     employerForm.elements.status.value = '3rd SOA Served';
   }
 });
 
 employerForm.elements.legalReferralDate?.addEventListener('change', () => {
-  if (employerForm.elements.legalReferralDate.value) {
+  const currentStatus = employerForm.elements.status.value;
+  if (employerForm.elements.legalReferralDate.value && currentStatus !== 'Settled') {
     employerForm.elements.status.value = 'Referred to Legal';
   }
+});
+
+const exportTableToCsv = (viewName) => {
+  const table = document.querySelector(`[data-ao-view="${viewName}"] .ao-table`);
+  if (!table) return;
+
+  const rows = [];
+  const headerCells = [...table.querySelectorAll('thead tr:last-child th')].map((th) => `"${th.innerText.replace(/\n/g, ' ').trim().replace(/"/g, '""')}"`);
+  rows.push(headerCells.join(','));
+
+  table.querySelectorAll('tbody tr[data-employer-id]').forEach((tr) => {
+    if (tr.hidden || tr.style.display === 'none') return;
+    const cells = [...tr.cells].map((td) => `"${td.innerText.replace(/\n/g, ' ').trim().replace(/"/g, '""')}"`);
+    rows.push(cells.join(','));
+  });
+
+  const csvContent = '\uFEFF' + rows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${viewName}_Employers_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+document.querySelectorAll('[data-table-dashboard]').forEach((button) => {
+  button.addEventListener('click', () => openTableDashboard(button.dataset.tableDashboard));
+});
+
+document.querySelectorAll('[data-table-export]').forEach((button) => {
+  button.addEventListener('click', () => exportTableToCsv(button.dataset.tableExport));
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {
@@ -1842,7 +2512,8 @@ document.querySelectorAll('[data-table-edit-data]').forEach((button) => {
 });
 
 document.querySelectorAll('.ao-table-filters input, .ao-table-filters select').forEach((control) => {
-  const viewName = control.closest('.ao-view').dataset.aoView;
+  const viewName = control.closest('.ao-view')?.dataset?.aoView;
+  if (!viewName) return;
   control.addEventListener('input', () => filterAoTable(viewName));
   control.addEventListener('change', () => filterAoTable(viewName));
 });
@@ -1855,6 +2526,96 @@ document.addEventListener('click', (event) => {
   const row = event.target.closest('.ao-table tbody tr');
   if (!row || !row.closest('.ao-view.is-editing') || !row.dataset.employerId) return;
   row.classList.toggle('is-selected');
+});
+
+document.addEventListener('dblclick', (event) => {
+  const row = event.target.closest('.ao-table tbody tr');
+  if (!row || !row.dataset.employerId) return;
+  openEmployerEdit(row);
+});
+
+/* ── Billing History / Statement of Account Modal ── */
+const billingHistoryModal = document.getElementById('billingHistoryModal');
+const billingHistoryBody = document.getElementById('billingHistoryBody');
+const billingHistoryClose = document.getElementById('billingHistoryClose');
+const billingHistoryDismissBtn = document.getElementById('billingHistoryDismissBtn');
+const billingHistoryEditBtn = document.getElementById('billingHistoryEditBtn');
+let billingHistoryTargetRow = null;
+
+const fmt = (val) => `₱${formatAmount(val ?? 0)}`;
+
+const openBillingHistoryModal = (row) => {
+  const employer = JSON.parse(row?.dataset.employer || '{}');
+  if (!employer.id) return;
+  billingHistoryTargetRow = row;
+
+  const soaInfo = getEmployerSoaInfo(employer);
+  const status = employer.status || '1st SOA Served';
+
+  const stage1Active = status.includes('1st SOA') || status.includes('2nd') || status.includes('3rd') || status.includes('Legal') || status.includes('Settled');
+  const stage2Active = status.includes('2nd SOA') || status.includes('3rd') || status.includes('Legal') || status.includes('Settled');
+  const stage3Active = status.includes('3rd SOA') || status.includes('Legal') || status.includes('Settled');
+
+  const stageCard = (label, date, person, principal, penalty, interest, total, isActive) => {
+    if (!date && !principal) return '';
+    return `
+      <div class="billing-stage-card${isActive ? ' is-active' : ''}">
+        <div class="billing-stage-title">
+          <span>${label}</span>
+          <span>${date ? `Served: ${formatDisplayDate(date)}` : '—'}</span>
+        </div>
+        <div class="billing-stage-grid">
+          <div><div class="item-label">Principal</div><div class="item-value">${fmt(principal)}</div></div>
+          <div><div class="item-label">Penalty</div><div class="item-value">${fmt(penalty)}</div></div>
+          <div><div class="item-label">Interest</div><div class="item-value">${fmt(interest)}</div></div>
+          <div><div class="item-label">Total</div><div class="item-value" style="color:#1d4ed8">${fmt(total)}</div></div>
+        </div>
+        ${person ? `<div style="font-size:11px;color:#475569;margin-top:6px">Received by: <strong>${person}</strong></div>` : ''}
+      </div>`;
+  };
+
+  const paidTotal = Number(employer.payment_total || 0);
+  const latestTotal = Number(employer.soa3_total || employer.soa2_total || employer.total_amount || 0);
+  const balance = Math.max(0, latestTotal - paidTotal);
+
+  billingHistoryBody.innerHTML = `
+    <div class="billing-emp-header">
+      <div class="billing-emp-title">
+        <h3>${employer.employer_name || '—'}</h3>
+        <p>${formatSssEmployerNumber(employer.employer_number)} &bull; ${employer.payer_type || 'Interim Payer'} &bull; ${employer.assigned_view || ''}</p>
+      </div>
+      <span class="status-badge ${soaInfo.stage === 'Settled' ? 'status-badge-settled' : soaInfo.stage === 'Referred to Legal' ? 'status-badge-legal' : 'status-badge-1st-soa'}">${status}</span>
+    </div>
+    ${stage1Active ? stageCard('1st SOA Billing', employer.soa_date, employer.person_received, employer.principal, employer.penalty, employer.interest, employer.total_amount, !stage2Active) : ''}
+    ${stage2Active ? stageCard('2nd SOA Billing', employer.soa2_date, employer.soa2_person_received, employer.soa2_principal, employer.soa2_penalty, employer.soa2_interest, employer.soa2_total, !stage3Active) : ''}
+    ${stage3Active ? stageCard('3rd SOA Billing', employer.soa3_date, employer.soa3_person_received, employer.soa3_principal, employer.soa3_penalty, employer.soa3_interest, employer.soa3_total, true) : ''}
+    <div class="billing-summary-footer">
+      <span>Total Collectibles: <strong>${fmt(latestTotal)}</strong></span>
+      <span>Total Collected: <strong>${fmt(paidTotal)}</strong></span>
+      <span>Remaining Balance: <strong style="color:#fbbf24">${fmt(balance)}</strong></span>
+    </div>`;
+
+  billingHistoryModal.hidden = false;
+};
+
+const closeBillingHistoryModal = () => {
+  billingHistoryModal.hidden = true;
+  billingHistoryTargetRow = null;
+};
+
+if (billingHistoryClose) billingHistoryClose.addEventListener('click', closeBillingHistoryModal);
+if (billingHistoryDismissBtn) billingHistoryDismissBtn.addEventListener('click', closeBillingHistoryModal);
+if (billingHistoryModal) billingHistoryModal.addEventListener('click', (e) => { if (e.target === billingHistoryModal) closeBillingHistoryModal(); });
+if (billingHistoryEditBtn) billingHistoryEditBtn.addEventListener('click', () => {
+  if (billingHistoryTargetRow) { closeBillingHistoryModal(); openEmployerEdit(billingHistoryTargetRow); }
+});
+
+// Click on amount column (Total Amount = col index 8) to open billing history
+document.addEventListener('click', (event) => {
+  const cell = event.target.closest('td.td-amount-clickable');
+  if (!cell) return;
+  const row = cell.closest('tr[data-employer-id]');
+  if (row) openBillingHistoryModal(row);
 });
 
 Promise.all([loadEmployers(), loadEmployerSummary()])
@@ -1916,39 +2677,113 @@ pieChart = new Chart(document.getElementById('pieChart'), {
   },
 });
 
-/* ── Bar Chart: Settled vs Unsettled ── */
+/* ── Bar Chart: SOA Escalation Pipeline ── */
 barChart = new Chart(document.getElementById('barChart'), {
   type: 'bar',
   data: {
-    labels: ['Settled', 'Unsettled'],
+    labels: ['1st SOA', '2nd SOA', '3rd SOA', 'Legal', 'Settled'],
     datasets: [{
-      data: [10, 2],
-      backgroundColor: [COLORS.navy, COLORS.navy],
-      borderRadius: 0,
-      barPercentage: 0.55,
+      data: [0, 0, 0, 0, 0],
+      backgroundColor: ['#0284c7', '#f59e0b', '#f43f5e', '#dc2626', '#10b981'],
+      borderRadius: 4,
+      barPercentage: 0.65,
     }],
   },
   options: {
     ...chartDefaults,
     plugins: {
       legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `${ctx.raw} account${ctx.raw === 1 ? '' : 's'}`,
+        },
+      },
     },
     scales: {
       x: {
-        ticks: { font: { size: 10 } },
+        ticks: { font: { size: 9, weight: 'bold' } },
         grid: { display: false },
       },
       y: {
         beginAtZero: true,
-        max: 12,
         ticks: {
-          stepSize: 2,
+          stepSize: 1,
           font: { size: 9 },
         },
-        grid: { color: '#e0e0e0' },
+        grid: { color: '#e2e8f0' },
       },
     },
   },
+});
+
+// Clickable Monitor Rows
+document.querySelectorAll('.status-row-clickable').forEach((row) => {
+  row.addEventListener('click', () => {
+    const action = row.dataset.monitorAction;
+    if (action === 'dueCount') {
+      if (soaReminderModal) soaReminderModal.hidden = false;
+      updateSoaReminders();
+    } else if (action === 'settled') {
+      navigateToView('MasterFile');
+      const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
+      if (filter) { filter.value = 'Settled'; filterAoTable('MasterFile'); }
+    } else if (action === 'unsettled') {
+      navigateToView('MasterFile');
+      const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
+      if (filter) { filter.value = ''; filterAoTable('MasterFile'); }
+    } else if (action === 'legalCount') {
+      navigateToView('MasterFile');
+      const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
+      if (filter) { filter.value = 'Referred to Legal'; filterAoTable('MasterFile'); }
+    } else if (action === 'pendingSoa') {
+      navigateToView('MasterFile');
+    } else if (action === 'rp') {
+      navigateToView('MasterFile');
+      const tab = document.querySelector('[data-ao-view="MasterFile"] [data-sheet="RP"]');
+      if (tab) tab.click();
+    } else if (action === 'ipSp') {
+      navigateToView('MasterFile');
+      const tab = document.querySelector('[data-ao-view="MasterFile"] [data-sheet="IP"]');
+      if (tab) tab.click();
+    }
+  });
+});
+
+// Interactive Metric Cards Click Handler
+document.querySelectorAll('.metric-card-interactive').forEach((card) => {
+  card.addEventListener('click', () => {
+    const action = card.dataset.cardAction;
+    if (!action) return;
+    if (action === 'dueCount') {
+      updateSoaReminders();
+      if (soaReminderModal) soaReminderModal.hidden = false;
+      return;
+    }
+    navigateToView('MasterFile');
+    const statusSelect = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
+    if (action === 'paid') {
+      if (statusSelect) statusSelect.value = 'Settled';
+    } else if (action === 'soa1Count') {
+      if (statusSelect) statusSelect.value = '1st SOA Served';
+    } else if (action === 'soa2Count') {
+      if (statusSelect) statusSelect.value = '2nd SOA Served';
+    } else if (action === 'soa3Count') {
+      if (statusSelect) statusSelect.value = '3rd SOA Served';
+    } else if (action === 'legalCount') {
+      if (statusSelect) statusSelect.value = 'Referred to Legal';
+    } else {
+      if (statusSelect) statusSelect.value = '';
+    }
+    filterAoTable('MasterFile');
+  });
+});
+
+// Clickable Branch Performance Table Rows
+document.querySelectorAll('tr.branch-row-clickable').forEach((row) => {
+  row.addEventListener('click', () => {
+    const branch = row.dataset.branchRow;
+    if (branch) navigateToView(branch);
+  });
 });
 
 /* ── Grouped Bar Chart: Overall Performance ── */
@@ -1990,6 +2825,17 @@ groupedBarChart = new Chart(document.getElementById('groupedBarChart'), {
         ...chartDefaults.plugins.legend,
         position: 'bottom',
       },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => {
+            const val = ctx.raw;
+            if (ctx.dataIndex >= 3) {
+              return `${ctx.dataset.label}: ₱${formatAmount(val * 1000)}`;
+            }
+            return `${ctx.dataset.label}: ${val} accounts`;
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -2009,3 +2855,67 @@ groupedBarChart = new Chart(document.getElementById('groupedBarChart'), {
 });
 
 refreshCharts();
+
+if (loginForm) {
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = loginForm.elements.username.value.trim();
+    const password = loginForm.elements.password.value;
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.classList.add('is-loading');
+    submitButton.setAttribute('aria-label', 'Signing in');
+    loginError.hidden = true;
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
+
+      saveAuthSession(result.user);
+      currentUser = result.user;
+      const defaultView = getOfficerView(result.user.role) || 'DASHBOARD';
+      showDashboard(result.user, {
+        animate: true,
+        onAnimationEnd: () => {
+          navigateToView(defaultView);
+        },
+      });
+      if (typeof syncOfficerFormLayout === 'function') syncOfficerFormLayout();
+      if (typeof loadEmployers === 'function') loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
+      if (typeof loadEmployerSummary === 'function') loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
+      if (typeof loadCalendarEvents === 'function') loadCalendarEvents({ showNotification: false }).catch((error) => console.error(error));
+    } catch (error) {
+      loginError.textContent = error.message;
+      loginError.hidden = false;
+      loginForm.elements.password.focus();
+    } finally {
+      submitButton.disabled = false;
+      submitButton.classList.remove('is-loading');
+      submitButton.removeAttribute('aria-label');
+    }
+  });
+}
+
+const restoreSessionOnLoad = () => {
+  const savedAccount = getSavedAuthSession();
+  if (savedAccount && (savedAccount.accessToken || savedAccount.role)) {
+    currentUser = savedAccount;
+    const defaultView = getOfficerView(savedAccount.role) || 'DASHBOARD';
+    showDashboard(savedAccount);
+    navigateToView(defaultView);
+    if (typeof syncOfficerFormLayout === 'function') syncOfficerFormLayout();
+    if (typeof loadEmployers === 'function') loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
+    if (typeof loadEmployerSummary === 'function') loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
+    if (typeof loadCalendarEvents === 'function') loadCalendarEvents({ showNotification: false }).catch((error) => console.error(error));
+  } else {
+    dashboardShell.hidden = true;
+    authScreen.hidden = false;
+  }
+};
+
+restoreSessionOnLoad();

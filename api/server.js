@@ -66,7 +66,8 @@ const findUserByLoginIdentifier = async (loginIdentifier) => {
   return get('SELECT * FROM users WHERE LOWER(email) = $1 OR LOWER(username) = $1', [normalized]);
 };
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..')));
 
 // Health check
@@ -132,7 +133,7 @@ app.post('/api/auth/login', async (request, response) => {
   });
 });
 
-const requireSuperAdmin = async (request, response) => {
+const requireAdminOrSuperAdmin = async (request, response) => {
   const authorization = request.headers.authorization || '';
   const accessToken = authorization.startsWith('Bearer ')
     ? authorization.slice('Bearer '.length)
@@ -144,8 +145,8 @@ const requireSuperAdmin = async (request, response) => {
   }
 
   const payload = verifyAppToken(accessToken);
-  if (!payload || payload.role !== 'Super Admin') {
-    response.status(403).json({ error: 'Super Admin access is required.' });
+  if (!payload || !['Super Admin', 'Admin'].includes(payload.role)) {
+    response.status(403).json({ error: 'Admin or Super Admin access is required.' });
     return null;
   }
 
@@ -167,13 +168,13 @@ const requireAuthenticatedUser = async (request, response) => {
   return null;
 };
 
-// Users list (Super Admin only)
+// Users list (Admin and Super Admin)
 app.get('/api/users', async (request, response) => {
-  if (!(await requireSuperAdmin(request, response))) return;
+  if (!(await requireAdminOrSuperAdmin(request, response))) return;
 
   try {
     const users = await all(
-      'SELECT id, username, email, full_name, role, is_active FROM users ORDER BY role ASC, full_name ASC'
+      'SELECT id, username, email, full_name, role, is_active, avatar_url, assigned_places FROM users ORDER BY role ASC, full_name ASC'
     );
     return response.json(users);
   } catch (error) {
@@ -181,6 +182,53 @@ app.get('/api/users', async (request, response) => {
     return response.status(500).json({ error: 'Unable to load user accounts.' });
   }
 });
+
+// Update user profile / avatar / assigned places (Admin and Super Admin)
+const handleUpdateUser = async (request, response) => {
+  if (!(await requireAdminOrSuperAdmin(request, response))) return;
+
+  const targetId = request.params.id;
+  const { full_name, avatar_url, assigned_places } = request.body || {};
+
+  try {
+    if (getIsPg()) {
+      const updated = await get(
+        `UPDATE users
+         SET full_name = COALESCE($1, full_name),
+             avatar_url = CASE WHEN $2::text IS NOT NULL THEN $2::text ELSE avatar_url END,
+             assigned_places = CASE WHEN $3::text IS NOT NULL THEN $3::text ELSE assigned_places END,
+             updated_at = NOW()
+         WHERE id = $4
+         RETURNING id, username, email, full_name, role, is_active, avatar_url, assigned_places`,
+        [full_name ?? null, avatar_url !== undefined ? avatar_url : null, assigned_places !== undefined ? assigned_places : null, targetId]
+      );
+      if (!updated) return response.status(404).json({ error: 'User not found.' });
+      return response.json(updated);
+    } else {
+      await run(
+        `UPDATE users
+         SET full_name = COALESCE($1, full_name),
+             avatar_url = CASE WHEN $2 IS NOT NULL THEN $2 ELSE avatar_url END,
+             assigned_places = CASE WHEN $3 IS NOT NULL THEN $3 ELSE assigned_places END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4`,
+        [full_name ?? null, avatar_url !== undefined ? avatar_url : null, assigned_places !== undefined ? assigned_places : null, targetId]
+      );
+      const updated = await get(
+        'SELECT id, username, email, full_name, role, is_active, avatar_url, assigned_places FROM users WHERE id = $1',
+        [targetId]
+      );
+      if (!updated) return response.status(404).json({ error: 'User not found.' });
+      return response.json(updated);
+    }
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return response.status(500).json({ error: 'Unable to update user details.' });
+  }
+};
+
+app.put('/api/users/:id', handleUpdateUser);
+app.patch('/api/users/:id', handleUpdateUser);
 
 // Calendar Events
 app.get('/api/calendar-events', async (request, response) => {
@@ -248,13 +296,7 @@ app.get('/api/employers', async (request, response) => {
   if (!user) return;
 
   try {
-    const officerView = officerViewForRole(user.role);
-    let employers;
-    if (officerView) {
-      employers = await all('SELECT * FROM employers WHERE assigned_view = $1 ORDER BY created_at ASC', [officerView]);
-    } else {
-      employers = await all('SELECT * FROM employers ORDER BY created_at ASC');
-    }
+    const employers = await all('SELECT * FROM employers ORDER BY created_at ASC');
     return response.json(employers);
   } catch (error) {
     console.error('Error loading employers:', error);
@@ -268,32 +310,51 @@ app.get('/api/employer-summary', async (request, response) => {
   if (!user) return;
 
   try {
-    const data = await all('SELECT assigned_view, status, total_amount FROM employers');
+    const data = await all('SELECT assigned_view, status, payer_type, total_amount, payment_total, soa_date, billing_date, soa2_date, soa3_date FROM employers');
+
+    const now = new Date();
+    const isDueRecord = (employer) => {
+      const status = String(employer.status || '').trim().toLowerCase();
+      if (status.includes('legal') || status.includes('settled')) return false;
+      const servedDateStr = employer.soa3_date || employer.soa2_date || employer.soa_date || employer.billing_date;
+      if (!servedDateStr) return false;
+      const served = new Date(servedDateStr);
+      if (isNaN(served.getTime())) return false;
+      const diffDays = Math.floor((now - served) / (1000 * 60 * 60 * 24));
+      return diffDays >= 15;
+    };
 
     const summary = ['AO1', 'AO2', 'AO3'].reduce((result, viewName) => {
       const employers = (data || []).filter((employer) => employer.assigned_view === viewName);
-      const settled = employers.filter((employer) => (employer.status || '').toLowerCase().includes('settled')).length;
-      const unsettled = employers.filter((employer) => !(employer.status || '').toLowerCase().includes('settled')).length;
-      const unregistered = employers.filter((employer) => ['not yet registered', 'unregistered'].includes((employer.status || '').toLowerCase())).length;
-      const registered = employers.length - unregistered;
-      const billed = employers.reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
-      const settledAmount = employers
-        .filter((employer) => (employer.status || '').toLowerCase().includes('settled'))
-        .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
-      const unsettledAmount = employers
-        .filter((employer) => !(employer.status || '').toLowerCase().includes('settled'))
-        .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
+      const soa1 = employers.filter((e) => String(e.status || '').includes('1st SOA')).length;
+      const soa2 = employers.filter((e) => String(e.status || '').includes('2nd SOA')).length;
+      const soa3 = employers.filter((e) => String(e.status || '').includes('3rd SOA')).length;
+      const legal = employers.filter((e) => String(e.status || '').toLowerCase().includes('legal')).length;
+      const dueCount = employers.filter(isDueRecord).length;
+
+      const rpCount = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('regular')).length;
+      const ipCount = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('interim')).length;
+      const spCount = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('special')).length;
+
+      const billed = employers.reduce((total, e) => total + Number(e.total_amount || 0), 0);
+      const collected = employers.reduce((total, e) => total + Number(e.payment_total || 0), 0);
+      const balance = Math.max(0, billed - collected);
+      const collectionRate = billed > 0 ? ((collected / billed) * 100).toFixed(1) + '%' : '0.0%';
 
       result[viewName] = {
         total: employers.length,
-        settled,
-        unsettled,
-        completion: `${employers.length ? ((settled / employers.length) * 100).toFixed(2) : '0.00'}%`,
+        soa1,
+        soa2,
+        soa3,
+        legal,
+        dueCount,
+        rpCount,
+        ipCount,
+        spCount,
         billed: billed.toFixed(2),
-        settledAmount: settledAmount.toFixed(2),
-        unsettledAmount: unsettledAmount.toFixed(2),
-        registered,
-        unregistered,
+        collected: collected.toFixed(2),
+        balance: balance.toFixed(2),
+        collectionRate,
       };
       return result;
     }, {});
@@ -325,8 +386,9 @@ app.post('/api/employers', async (request, response) => {
     'assigned_view', 'employer_number', 'employer_name', 'payer_type', 'address', 'address_line1', 'address_country', 'address_state',
     'address_city', 'address_barangay', 'address_postal_code', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
-    'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
-    'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+    'payment_penalty', 'payment_total', 'soa2_date', 'soa2_person_received', 'soa2_principal', 'soa2_penalty', 'soa2_interest', 'soa2_total',
+    'soa3_date', 'soa3_person_received', 'soa3_principal', 'soa3_penalty', 'soa3_interest', 'soa3_total', 'billing_person_received',
+    'legal_referral_date', 'demand_letter_date', 'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
     'forwarded_stage', 'forwarded_date',
   ];
 
@@ -376,8 +438,9 @@ app.patch('/api/employers', async (request, response) => {
     'employer_number', 'employer_name', 'payer_type', 'address', 'address_line1', 'address_country', 'address_state',
     'address_city', 'address_barangay', 'address_postal_code', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
-    'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
-    'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+    'payment_penalty', 'payment_total', 'soa2_date', 'soa2_person_received', 'soa2_principal', 'soa2_penalty', 'soa2_interest', 'soa2_total',
+    'soa3_date', 'soa3_person_received', 'soa3_principal', 'soa3_penalty', 'soa3_interest', 'soa3_total', 'billing_person_received',
+    'legal_referral_date', 'demand_letter_date', 'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
     'forwarded_stage', 'forwarded_date',
   ];
 
