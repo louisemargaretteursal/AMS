@@ -234,9 +234,13 @@ const initDb = async () => {
           end_time TIME,
           description TEXT,
           created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      try {
+        await executeQuery('ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()');
+      } catch (_e) {}
     } catch (pgErr) {
       console.warn('Could not connect to PostgreSQL (' + pgErr.message + '). Falling back to local SQLite.');
       isPg = false;
@@ -369,9 +373,21 @@ const initDb = async () => {
         end_time TEXT,
         description TEXT,
         created_by TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    try {
+      await executeQuery('ALTER TABLE calendar_events ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+    } catch (_e) {}
+
+    const adminRecord = await get('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', ['admin']);
+    if (adminRecord?.id) {
+      await executeQuery(
+        'UPDATE calendar_events SET created_by = ? WHERE created_by IS NULL OR TRIM(COALESCE(created_by, "")) = ""',
+        [adminRecord.id]
+      );
+    }
   }
 
   // Seed default users if empty

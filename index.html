@@ -29,38 +29,40 @@
           </div>
 
           <div class="login-form-body">
-            <p class="login-instruction">Sign in to your account.</p>
+            <div class="login-form-card">
+              <p class="login-instruction">Sign in to your account.</p>
 
-            <div class="auth-input-group">
-              <label for="username">User ID</label>
-              <div class="auth-input-wrap">
-                <input id="username" name="username" type="text" autocomplete="username" placeholder="User ID" required>
-                <span class="auth-input-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </span>
+              <div class="auth-input-group">
+                <label for="username">User ID</label>
+                <div class="auth-input-wrap">
+                  <input id="username" name="username" type="text" autocomplete="username" placeholder="User ID" required>
+                  <span class="auth-input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div class="auth-input-group">
-              <label for="password">Password</label>
-              <div class="auth-input-wrap">
-                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
-                <button type="button" class="auth-toggle-pwd" id="togglePasswordBtn" aria-label="Toggle password visibility" title="Show/Hide password">
-                  <svg id="pwdEyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
-                  </svg>
-                </button>
+              <div class="auth-input-group">
+                <label for="password">Password</label>
+                <div class="auth-input-wrap">
+                  <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+                  <button type="button" class="auth-toggle-pwd" id="togglePasswordBtn" aria-label="Toggle password visibility" title="Show/Hide password">
+                    <svg id="pwdEyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
+                    </svg>
+                  </button>
+                </div>
               </div>
+
+              <p class="login-error" id="loginError" role="alert" hidden></p>
+
+              <button class="login-submit" type="submit">Sign In</button>
             </div>
-
-            <p class="login-error" id="loginError" role="alert" hidden></p>
-
-            <button class="login-submit" type="submit">Sign In</button>
           </div>
 
           <div class="login-footer-meta">
@@ -87,24 +89,33 @@
 
     <!-- Navigation -->
     <nav class="nav-bar" id="mainNav">
+      <div class="nav-branding">
+        <img class="nav-brand-logo" src="logo.png" alt="SSS Logo">
+        <div class="nav-brand-copy">
+          <span class="nav-brand-title">Social Security System</span>
+          <span class="nav-brand-subtitle">Toledo City branch</span>
+        </div>
+      </div>
       <div class="dashboard-nav-item">
         <button class="nav-btn active" aria-label="Open dashboard" title="Dashboard">DASHBOARD</button>
         <button class="nav-btn org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">ORGANIZATIONAL CHART</button>
       </div>
       <button class="nav-btn calendar-open-btn" id="calendarOpenButton" type="button" aria-label="Open calendar" title="Calendar">CALENDAR</button>
+      <div class="nav-item" data-nav-view="MasterFile">
+        <button class="nav-btn" aria-label="Open MasterFile" title="MasterFile">MASTERFILE</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
+      </div>
       <div class="nav-item" data-nav-view="AO1">
-        <button class="nav-btn" aria-label="Open AO1" title="AO1">AO1</button>
+        <button class="nav-btn" aria-label="Open AO1 Database" title="AO1 Database">AO1</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to AO1" data-form-view="AO1">+</button>
       </div>
       <div class="nav-item" data-nav-view="AO2">
-        <button class="nav-btn" aria-label="Open AO2" title="AO2">AO2</button>
+        <button class="nav-btn" aria-label="Open AO2 Database" title="AO2 Database">AO2</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to AO2" data-form-view="AO2">+</button>
       </div>
       <div class="nav-item" data-nav-view="AO3">
-        <button class="nav-btn" aria-label="Open AO3" title="AO3">AO3</button>
+        <button class="nav-btn" aria-label="Open AO3 Database" title="AO3 Database">AO3</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to AO3" data-form-view="AO3">+</button>
-      </div>
-      <div class="nav-item" data-nav-view="MasterFile">
         <button class="nav-btn" aria-label="Open MasterFile" title="MasterFile">MASTERFILE</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
       </div>
@@ -117,7 +128,14 @@
         </button>
       </div>
       <div class="header-session sidebar-session">
-        <span id="loggedInUser"></span>
+        <span id="loggedInUser" hidden></span>
+        <div class="sidebar-profile" aria-label="Admin profile">
+          <div class="sidebar-avatar">A</div>
+          <div class="sidebar-user-meta">
+            <span class="sidebar-user-name">Admin</span>
+            <span class="sidebar-user-role">Administrator</span>
+          </div>
+        </div>
         <button id="logoutButton" type="button">Sign out</button>
       </div>
     </nav>
@@ -1254,9 +1272,10 @@
     </div>
 
     <main class="org-chart-page" id="orgChartModal" hidden aria-labelledby="orgChartTitle">
-        <div class="employer-modal-header">
-          <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
-          <button class="org-chart-page-back" id="orgChartClose" type="button">&#8592; Back</button>
+        <div class="employer-modal-header org-chart-header">
+          <div class="org-chart-header-meta">
+            <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
+          </div>
         </div>
         <div class="org-chart-content">
           <div class="org-chart-level org-chart-root-level" data-org-chart-group="root"></div>
@@ -1346,7 +1365,6 @@
       <section class="calendar-modal">
         <div class="calendar-modal-header">
           <h2 id="calendarTitle">CALENDAR</h2>
-          <button class="calendar-page-back" id="calendarClose" type="button">&#8592; Back</button>
         </div>
         <div class="calendar-toolbar">
           <button class="calendar-nav-btn" id="calendarPrevious" type="button" aria-label="Previous month">&#8592;</button>
@@ -1384,6 +1402,10 @@
           <button class="modal-close-btn" id="calendarSummaryClose" type="button" aria-label="Close event summary">&times;</button>
         </div>
         <div class="calendar-summary" id="calendarSummary"></div>
+        <div class="calendar-summary-actions">
+          <button class="calendar-add-btn" id="calendarEditEvent" type="button">Edit event</button>
+          <button class="delete-approve-btn" id="calendarDeleteEvent" type="button">Delete event</button>
+        </div>
       </section>
     </div>
 

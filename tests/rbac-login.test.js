@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { validateRbacLogin } = require('../api/server.js');
+const { validateRbacLogin, normalizeCalendarDateValue } = require('../api/server.js');
 
 const cases = [
   {
@@ -39,4 +39,15 @@ for (const testCase of cases) {
   assert.deepEqual(result, testCase.expected, `${testCase.name} mismatch`);
 }
 
-console.log(`Validated ${cases.length} RBAC login cases.`);
+const dateCases = [
+  ['2026-08-19', '2026-08-19'],
+  ['2026-08-19T00:00:00.000Z', '2026-08-19'],
+  ['2026-08-19T16:00:00.000Z', '2026-08-19'],
+  ['', null],
+];
+
+for (const [input, expected] of dateCases) {
+  assert.equal(normalizeCalendarDateValue(input), expected, `Calendar date normalization mismatch for ${input}`);
+}
+
+console.log(`Validated ${cases.length} RBAC login cases and ${dateCases.length} calendar date cases.`);

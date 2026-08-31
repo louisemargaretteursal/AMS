@@ -41,11 +41,35 @@ const showAuthForm = (formName) => {
   registerForm.hidden = !isRegister;
 };
 
+const syncSidebarProfile = (account) => {
+  const nameEl = document.querySelector('.sidebar-user-name');
+  const roleEl = document.querySelector('.sidebar-user-role');
+  const avatarEl = document.querySelector('.sidebar-avatar');
+  if (!nameEl || !roleEl || !avatarEl) return;
+
+  const officerMode = Boolean(getOfficerView(account?.role));
+
+  if (officerMode) {
+    const username = account?.username || 'user';
+    const role = account?.role || 'User';
+    const initial = String(username || role || 'U').trim().charAt(0).toUpperCase() || 'U';
+    nameEl.textContent = username;
+    roleEl.textContent = role;
+    avatarEl.textContent = initial;
+    return;
+  }
+
+  nameEl.textContent = 'Admin';
+  roleEl.textContent = 'Administrator';
+  avatarEl.textContent = 'A';
+};
+
 const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
   currentUser = account;
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
   const superAdmin = account.role === 'Super Admin';
+  syncSidebarProfile(account);
   pageWrapper.classList.toggle('officer-mode', officerMode);
   pageWrapper.classList.toggle('dashboard-active', !officerMode);
   pageWrapper.dataset.officerView = officerViewName;
@@ -58,9 +82,13 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
-    navItem.hidden = (superAdmin && navView.startsWith('AO'))
-      || (superAdmin && navView === 'EmployerForm')
-      || (officerMode && navView !== officerViewName && navView !== 'EmployerForm');
+    if (officerMode) {
+      navItem.hidden = (navView !== officerViewName && navView !== "EmployerForm");
+    } else if (superAdmin) {
+      navItem.hidden = (navView.startsWith("AO") || navView === "EmployerForm");
+    } else {
+      navItem.hidden = false;
+    }
   });
 
   const soaNotification = document.querySelector('.soa-notification-item');
@@ -90,6 +118,7 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
 const signOut = () => {
   currentUser = null;
+  syncSidebarProfile({ role: 'Admin', username: 'admin' });
   logoutConfirmModal.hidden = true;
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
@@ -197,6 +226,17 @@ logoutConfirmCancel.addEventListener('click', closeLogoutConfirmation);
 /* Static dashboard data — mirrors screenshot values exactly */
 
 const navButtons = document.querySelectorAll('.nav-btn');
+const clearActiveNavButtons = (selectedButton = null) => {
+  const buttonsToClear = [
+    ...document.querySelectorAll('.nav-btn'),
+    calendarOpenButton,
+    document.querySelector('.org-chart-btn'),
+  ].filter(Boolean);
+
+  buttonsToClear.forEach((button) => {
+    if (button !== selectedButton) button.classList.remove('active');
+  });
+};
 const mainNav = document.getElementById('mainNav');
 const dashboardView = document.getElementById('dashboardView');
 const employerFormView = document.getElementById('employerFormView');
@@ -236,6 +276,8 @@ const calendarError = document.getElementById('calendarError');
 const calendarSummaryModal = document.getElementById('calendarSummaryModal');
 const calendarSummaryClose = document.getElementById('calendarSummaryClose');
 const calendarSummary = document.getElementById('calendarSummary');
+const calendarEditEvent = document.getElementById('calendarEditEvent');
+const calendarDeleteEvent = document.getElementById('calendarDeleteEvent');
 const calendarNotificationModal = document.getElementById('calendarNotificationModal');
 const calendarNotificationClose = document.getElementById('calendarNotificationClose');
 const calendarNotificationOpen = document.getElementById('calendarNotificationOpen');
@@ -244,6 +286,9 @@ const calendarNotificationSummary = document.getElementById('calendarNotificatio
 let calendarEvents = [];
 let branchSummary = null;
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let selectedCalendarDate = null;
+let calendarEditingEventId = null;
+let activeCalendarSummaryEvent = null;
 let calendarReturnView = 'DASHBOARD';
 let orgChartReturnView = 'DASHBOARD';
 const orgChartGroups = {
@@ -253,7 +298,48 @@ const orgChartGroups = {
 };
 const orgChartContent = document.querySelector('.org-chart-content');
 
-const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
+const normalizeCalendarDateString = (value) => {
+  if (!value && value !== 0) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  const dateOnly = raw.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dateOnly;
+  const isoDate = raw.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoDate) return isoDate[0];
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return formatCalendarDate(parsed);
+};
+
+const formatCalendarDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+selectedCalendarDate = formatCalendarDate(new Date());
+
+const openCalendarEventModalForDate = (date, event = null) => {
+  selectedCalendarDate = date || formatCalendarDate(new Date());
+  if (!calendarEventForm) return;
+  calendarEventForm.reset();
+  if (calendarError) calendarError.hidden = true;
+  const submitButton = calendarEventForm.querySelector('button[type="submit"]');
+  if (event) {
+    calendarEditingEventId = event.id;
+    calendarEventForm.elements.title.value = event.title || '';
+    calendarEventForm.elements.date.value = normalizeCalendarDateString(event.event_date || selectedCalendarDate);
+    calendarEventForm.elements.description.value = event.description || '';
+    if (submitButton) submitButton.textContent = 'Update event';
+  } else {
+    calendarEditingEventId = null;
+    calendarEventForm.elements.date.value = selectedCalendarDate;
+    if (submitButton) submitButton.textContent = 'Save event';
+  }
+  calendarEventModal.hidden = false;
+  calendarEventForm.elements.title.focus();
+};
+
 const updateEmployerTotals = () => {
   if (!employerForm) return;
   const principal = parseAmount(employerForm.elements.principal?.value);
@@ -348,12 +434,19 @@ const renderCalendar = () => {
       const date = formatCalendarDate(new Date(year, month, day));
       if (date === formatCalendarDate(new Date())) dayCell.classList.add('is-today');
       dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
+      dayCell.addEventListener('click', () => {
+        openCalendarEventModalForDate(date);
+      });
       calendarEvents.filter((event) => event.event_date === date).forEach((event) => {
         const eventButton = document.createElement('button');
         eventButton.className = 'calendar-event';
         eventButton.type = 'button';
         eventButton.textContent = event.title;
-        eventButton.addEventListener('click', () => {
+        eventButton.addEventListener('click', (eventClick) => {
+          eventClick.stopPropagation();
+          activeCalendarSummaryEvent = event;
+          if (calendarEditEvent) calendarEditEvent.dataset.eventId = String(event.id);
+          if (calendarDeleteEvent) calendarDeleteEvent.dataset.eventId = String(event.id);
           calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${event.event_date}</p><p>${event.description || 'No description provided.'}</p>`;
           calendarSummaryModal.hidden = false;
           calendarSummaryClose.focus();
@@ -369,7 +462,10 @@ const loadCalendarEvents = async ({ showNotification = true } = {}) => {
   if (!currentUser) return;
   const response = await fetch('/api/calendar-events', { headers: { Authorization: `Bearer ${currentUser.accessToken}` } });
   if (!response.ok) throw new Error('Unable to load calendar events.');
-  calendarEvents = await response.json();
+  calendarEvents = (await response.json()).map((event) => ({
+    ...event,
+    event_date: normalizeCalendarDateString(event.event_date),
+  }));
   renderCalendar();
   if (showNotification) window.setTimeout(showCurrentDateNotification, 500);
 };
@@ -382,11 +478,12 @@ const showCalendarPage = () => {
   employerFormView.hidden = true;
   aoViews.forEach((view) => { view.hidden = true; });
   document.querySelector('.ao-views').classList.remove('is-active');
+  clearActiveNavButtons(calendarOpenButton);
   calendarModal.hidden = false;
   calendarOpenButton.classList.add('active');
   document.querySelector('.dashboard-nav-item .org-chart-btn').classList.remove('active');
   renderCalendar();
-  calendarClose.focus();
+  if (calendarClose) calendarClose.focus();
 };
 
 const closeCalendar = () => {
@@ -394,34 +491,84 @@ const closeCalendar = () => {
   calendarOpenButton.classList.remove('active');
   navigateToView(calendarReturnView);
 };
-const closeCalendarEvent = () => { calendarEventModal.hidden = true; };
-const closeCalendarSummary = () => { calendarSummaryModal.hidden = true; };
+const closeCalendarEvent = () => {
+  calendarEditingEventId = null;
+  if (calendarEventForm) {
+    const submitButton = calendarEventForm.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.textContent = 'Save event';
+  }
+  calendarEventModal.hidden = true;
+};
+const closeCalendarSummary = () => {
+  activeCalendarSummaryEvent = null;
+  if (calendarEditEvent) calendarEditEvent.removeAttribute('data-event-id');
+  if (calendarDeleteEvent) calendarDeleteEvent.removeAttribute('data-event-id');
+  calendarSummaryModal.hidden = true;
+};
 const closeCalendarNotification = () => { calendarNotificationModal.hidden = true; };
 
-calendarOpenButton.addEventListener('click', () => {
+const resolveActiveCalendarEvent = () => {
+  const eventId = (calendarEditEvent?.dataset?.eventId || calendarDeleteEvent?.dataset?.eventId || activeCalendarSummaryEvent?.id);
+  if (eventId == null || eventId === '') {
+    return activeCalendarSummaryEvent || null;
+  }
+  const foundEvent = calendarEvents.find((event) => String(event.id) === String(eventId));
+  if (foundEvent) {
+    activeCalendarSummaryEvent = foundEvent;
+    if (calendarEditEvent) calendarEditEvent.dataset.eventId = String(foundEvent.id);
+    if (calendarDeleteEvent) calendarDeleteEvent.dataset.eventId = String(foundEvent.id);
+  }
+  return foundEvent || activeCalendarSummaryEvent || null;
+};
+
+if (calendarOpenButton) calendarOpenButton.addEventListener('click', () => {
   showCalendarPage();
 });
-calendarClose.addEventListener('click', closeCalendar);
-calendarPrevious.addEventListener('click', () => {
+if (calendarClose) calendarClose.addEventListener('click', closeCalendar);
+if (calendarPrevious) calendarPrevious.addEventListener('click', () => {
   calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
   renderCalendar();
 });
-calendarNext.addEventListener('click', () => {
+if (calendarNext) calendarNext.addEventListener('click', () => {
   calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
   renderCalendar();
 });
-calendarAddEvent.addEventListener('click', () => {
-  calendarEventForm.reset();
-  calendarError.hidden = true;
-  calendarEventModal.hidden = false;
-  calendarEventForm.elements.date.value = formatCalendarDate(calendarMonth);
-  calendarEventForm.elements.title.focus();
+if (calendarAddEvent) calendarAddEvent.addEventListener('click', () => {
+  openCalendarEventModalForDate(selectedCalendarDate || formatCalendarDate(new Date()));
 });
-calendarEventClose.addEventListener('click', closeCalendarEvent);
-calendarSummaryClose.addEventListener('click', closeCalendarSummary);
-calendarNotificationClose.addEventListener('click', closeCalendarNotification);
-calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
-calendarNotificationOpen.addEventListener('click', () => {
+if (calendarEventClose) calendarEventClose.addEventListener('click', closeCalendarEvent);
+if (calendarSummaryClose) calendarSummaryClose.addEventListener('click', closeCalendarSummary);
+if (calendarEditEvent) calendarEditEvent.addEventListener('click', () => {
+  const selectedEvent = resolveActiveCalendarEvent();
+  if (!selectedEvent) return;
+  closeCalendarSummary();
+  openCalendarEventModalForDate(selectedEvent.event_date, selectedEvent);
+});
+if (calendarDeleteEvent) calendarDeleteEvent.addEventListener('click', async () => {
+  const selectedEvent = resolveActiveCalendarEvent();
+  if (!selectedEvent) return;
+  const confirmed = window.confirm(`Delete the event "${selectedEvent.title || 'Untitled event'}"?`);
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${currentUser.accessToken}` },
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Unable to delete calendar event.');
+    }
+    calendarEvents = calendarEvents.filter((event) => event.id !== selectedEvent.id);
+    closeCalendarSummary();
+    renderCalendar();
+  } catch (error) {
+    window.alert(error.message);
+  }
+});
+if (calendarNotificationClose) calendarNotificationClose.addEventListener('click', closeCalendarNotification);
+if (calendarNotificationDismiss) calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
+if (calendarNotificationOpen) calendarNotificationOpen.addEventListener('click', () => {
   closeCalendarNotification();
   showCalendarPage();
 });
@@ -434,8 +581,9 @@ calendarEventForm.addEventListener('submit', async (event) => {
   const submitButton = calendarEventForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   try {
-    const response = await fetch('/api/calendar-events', {
-      method: 'POST',
+    const isEditing = Boolean(calendarEditingEventId);
+    const response = await fetch(isEditing ? `/api/calendar-events/${calendarEditingEventId}` : '/api/calendar-events', {
+      method: isEditing ? 'PUT' : 'POST',
       headers: { Authorization: `Bearer ${currentUser.accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: formData.get('title'),
@@ -445,10 +593,21 @@ calendarEventForm.addEventListener('submit', async (event) => {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Unable to save calendar event.');
-    calendarEvents.push(result);
+    const normalizedResult = {
+      ...result,
+      event_date: normalizeCalendarDateString(result.event_date),
+    };
+
+    if (isEditing) {
+      calendarEvents = calendarEvents.map((entry) => (entry.id === normalizedResult.id ? normalizedResult : entry));
+    } else {
+      calendarEvents.push(normalizedResult);
+    }
+
+    calendarEditingEventId = null;
     closeCalendarEvent();
     renderCalendar();
-    if (result.event_date === formatCalendarDate(new Date())) showCurrentDateNotification();
+    if (normalizedResult.event_date === formatCalendarDate(new Date())) showCurrentDateNotification();
   } catch (error) {
     calendarError.textContent = error.message;
     calendarError.hidden = false;
@@ -1040,12 +1199,14 @@ const navigateToView = (viewName) => {
   const isEmployerForm = viewName === 'EmployerForm';
   calendarModal.hidden = true;
   orgChartModal.hidden = true;
+  const selectedNavButton = [...navButtons].find((button) => {
+    const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
+    return buttonView === viewName;
+  });
+  clearActiveNavButtons(selectedNavButton);
+  if (selectedNavButton) selectedNavButton.classList.add('active');
   calendarOpenButton.classList.remove('active');
   pageWrapper.classList.toggle('dashboard-active', isDashboard);
-  navButtons.forEach((button) => {
-    const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
-    button.classList.toggle('active', buttonView === viewName);
-  });
   dashboardView.hidden = !isDashboard;
   employerFormView.hidden = !isEmployerForm;
   aoViews.forEach((view) => {
@@ -1572,12 +1733,12 @@ const openOrgChart = () => {
   employerFormView.hidden = true;
   aoViews.forEach((view) => { view.hidden = true; });
   document.querySelector('.ao-views').classList.remove('is-active');
+  const orgChartButton = document.querySelector('.org-chart-btn');
+  clearActiveNavButtons(orgChartButton);
   orgChartModal.hidden = false;
   loadOrgChartUsers();
-  document.querySelector('.dashboard-nav-item .nav-btn').classList.remove('active');
-  document.querySelector('.org-chart-btn').classList.add('active');
-  calendarOpenButton.classList.remove('active');
-  orgChartClose.focus();
+  orgChartButton.classList.add('active');
+  if (orgChartClose) orgChartClose.focus();
 };
 
 const closeOrgChart = () => {
@@ -1747,8 +1908,8 @@ employerSuccessModal.addEventListener('click', (event) => {
   if (event.target === employerSuccessModal) closeEmployerSuccessModal();
 });
 
-tableDashboardClose.addEventListener('click', closeTableDashboard);
-orgChartClose.addEventListener('click', closeOrgChart);
+if (tableDashboardClose) tableDashboardClose.addEventListener('click', closeTableDashboard);
+if (orgChartClose) orgChartClose.addEventListener('click', closeOrgChart);
 
 tableDashboardModal.addEventListener('click', (event) => {
   if (event.target === tableDashboardModal) closeTableDashboard();

@@ -40,6 +40,33 @@ const normalizeRole = (role) => String(role || '')
   .replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1')
   .replace(/^Account Assistant ([1-3])$/, 'Account Officer $1');
 
+const getCalendarEventOwner = (event, fallbackOwnerId = null) => {
+  if (!event) return fallbackOwnerId || null;
+  const ownerId = event.created_by ?? event.createdBy ?? null;
+  return ownerId && String(ownerId).trim() ? String(ownerId) : fallbackOwnerId || null;
+};
+
+const filterCalendarEventsForUser = (events = [], currentUserId, fallbackOwnerId = null) => {
+  if (!currentUserId) return [];
+  return (events || []).filter((event) => {
+    const ownerId = getCalendarEventOwner(event, fallbackOwnerId);
+    return ownerId && String(ownerId) === String(currentUserId);
+  });
+};
+
+const normalizeCalendarDateValue = (value) => {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const dateOnly = raw.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dateOnly;
+  const isoDate = raw.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoDate) return isoDate[0];
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+};
+
 const officerViewForRole = (role) => {
   const normalizedRole = normalizeRole(role);
   return /^Account Officer [1-3]$/.test(normalizedRole)
@@ -232,13 +259,21 @@ app.patch('/api/users/:id', handleUpdateUser);
 
 // Calendar Events
 app.get('/api/calendar-events', async (request, response) => {
-  if (!(await requireAuthenticatedUser(request, response))) return;
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
 
   try {
+    const adminOwner = await get('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', ['admin']);
+    const fallbackOwnerId = adminOwner?.id || null;
     const events = await all(
       'SELECT id, title, event_date, start_time, end_time, description, created_by, created_at FROM calendar_events ORDER BY event_date ASC, start_time ASC'
     );
-    return response.json(events);
+    const scopedEvents = filterCalendarEventsForUser(events, user.userId, fallbackOwnerId)
+      .map((event) => ({
+        ...event,
+        event_date: normalizeCalendarDateValue(event.event_date),
+      }));
+    return response.json(scopedEvents);
   } catch (error) {
     console.error('Error loading calendar events:', error);
     return response.status(500).json({ error: 'Unable to load calendar events.' });
@@ -250,9 +285,10 @@ app.post('/api/calendar-events', async (request, response) => {
   if (!user) return;
 
   const submittedEvent = request.body || {};
+  const eventDate = normalizeCalendarDateValue(submittedEvent.date);
   const event = {
     title: String(submittedEvent.title || '').trim(),
-    event_date: submittedEvent.date,
+    event_date: eventDate,
     start_time: submittedEvent.startTime || null,
     end_time: submittedEvent.endTime || null,
     description: String(submittedEvent.description || '').trim() || null,
@@ -274,7 +310,10 @@ app.post('/api/calendar-events', async (request, response) => {
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
         [event.title, event.event_date, event.start_time, event.end_time, event.description, event.created_by]
       );
-      return response.status(201).json(created);
+      return response.status(201).json({
+        ...created,
+        event_date: normalizeCalendarDateValue(created.event_date),
+      });
     } else {
       const result = await run(
         `INSERT INTO calendar_events (title, event_date, start_time, end_time, description, created_by)
@@ -282,11 +321,94 @@ app.post('/api/calendar-events', async (request, response) => {
         [event.title, event.event_date, event.start_time, event.end_time, event.description, event.created_by]
       );
       const created = await get('SELECT * FROM calendar_events WHERE id = $1', [result.lastID]);
-      return response.status(201).json(created);
+      return response.status(201).json({
+        ...created,
+        event_date: normalizeCalendarDateValue(created.event_date),
+      });
     }
   } catch (error) {
     console.error('Error saving calendar event:', error);
     return response.status(500).json({ error: 'Unable to save calendar event.' });
+  }
+});
+
+app.put('/api/calendar-events/:id', async (request, response) => {
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
+
+  const eventId = Number(request.params.id);
+  const submittedEvent = request.body || {};
+  if (!Number.isInteger(eventId)) {
+    return response.status(400).json({ error: 'Valid event ID is required.' });
+  }
+
+  const eventDate = normalizeCalendarDateValue(submittedEvent.date);
+  const title = String(submittedEvent.title || '').trim();
+  const description = String(submittedEvent.description || '').trim() || null;
+  if (!title || !eventDate) {
+    return response.status(400).json({ error: 'Valid event title and date are required.' });
+  }
+
+  try {
+    const existing = await get('SELECT id, created_by FROM calendar_events WHERE id = $1', [eventId]);
+    if (!existing) return response.status(404).json({ error: 'Event not found.' });
+    if (String(existing.created_by || '') !== String(user.userId)) {
+      return response.status(403).json({ error: 'You can only edit events you created.' });
+    }
+
+    if (getIsPg()) {
+      const updated = await get(
+        `UPDATE calendar_events
+         SET title = $1, event_date = $2, description = $3
+         WHERE id = $4 RETURNING *`,
+        [title, eventDate, description, eventId]
+      );
+      return response.json({ ...updated, event_date: normalizeCalendarDateValue(updated.event_date) });
+    }
+
+    const result = await run(
+      `UPDATE calendar_events
+       SET title = ?, event_date = ?, description = ?
+       WHERE id = ?`,
+      [title, eventDate, description, eventId]
+    );
+    if (!result.rowCount) return response.status(404).json({ error: 'Event not found.' });
+    const updated = await get('SELECT * FROM calendar_events WHERE id = ?', [eventId]);
+    return response.json({ ...updated, event_date: normalizeCalendarDateValue(updated.event_date) });
+  } catch (error) {
+    console.error('Error updating calendar event:', error);
+    return response.status(500).json({ error: 'Unable to update calendar event.' });
+  }
+});
+
+app.delete('/api/calendar-events/:id', async (request, response) => {
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
+
+  const eventId = Number(request.params.id);
+  if (!Number.isInteger(eventId)) {
+    return response.status(400).json({ error: 'Valid event ID is required.' });
+  }
+
+  try {
+    const existing = await get('SELECT id, created_by FROM calendar_events WHERE id = $1', [eventId]);
+    if (!existing) return response.status(404).json({ error: 'Event not found.' });
+    if (String(existing.created_by || '') !== String(user.userId)) {
+      return response.status(403).json({ error: 'You can only delete events you created.' });
+    }
+
+    if (getIsPg()) {
+      const deleted = await get('DELETE FROM calendar_events WHERE id = $1 RETURNING id', [eventId]);
+      if (!deleted) return response.status(404).json({ error: 'Event not found.' });
+      return response.status(204).send();
+    }
+
+    const result = await run('DELETE FROM calendar_events WHERE id = ?', [eventId]);
+    if (!result.rowCount) return response.status(404).json({ error: 'Event not found.' });
+    return response.status(204).send();
+  } catch (error) {
+    console.error('Error deleting calendar event:', error);
+    return response.status(500).json({ error: 'Unable to delete calendar event.' });
   }
 });
 
@@ -501,6 +623,7 @@ app.delete('/api/employers', async (request, response) => {
 
 module.exports = app;
 module.exports.validateRbacLogin = validateRbacLogin;
+module.exports.normalizeCalendarDateValue = normalizeCalendarDateValue;
 
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3002;
