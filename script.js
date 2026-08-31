@@ -436,7 +436,7 @@ const getDynamicCalendarEvents = (year, month, daysInMonth) => {
       isDynamic: true,
       type: "soa-due",
       event_date: dueStr,
-      title: "🚨 15-Day Due: " + (emp.employer_name || "Employer"),
+      title: "15-Day Due: " + (emp.employer_name || "Employer"),
       description: "15-Day SOA compliance period expires. Current Status: " + (emp.status || "1st SOA Served") + ". Assigned: " + (emp.assigned_view || "AO1"),
       employer: emp
     });
@@ -449,7 +449,7 @@ const getDynamicCalendarEvents = (year, month, daysInMonth) => {
       isDynamic: true,
       type: "legal-case",
       event_date: cleanDate,
-      title: "⚖️ Legal Hearing: " + (emp.employer_name || "Employer"),
+      title: "Legal Hearing: " + (emp.employer_name || "Employer"),
       description: "Scheduled legal action / court hearing. Handling Lawyer: " + (emp.handling_lawyer || "Branch Legal") + ". Docket #: " + (emp.docket_number || "N/A"),
       employer: emp
     });
@@ -460,7 +460,7 @@ const getDynamicCalendarEvents = (year, month, daysInMonth) => {
     isDynamic: true,
     type: "statutory",
     event_date: year + "-" + mStr + "-10",
-    title: "📌 SSS Regular Contribution Remittance Deadline",
+    title: "SSS Regular Contribution Remittance Deadline",
     description: "Official SSS monthly contribution remittance deadline for regular registered employers."
   });
   dynamicEvents.push({
@@ -468,7 +468,7 @@ const getDynamicCalendarEvents = (year, month, daysInMonth) => {
     isDynamic: true,
     type: "statutory",
     event_date: year + "-" + mStr + "-" + String(daysInMonth).padStart(2, "0"),
-    title: "📌 SSS Voluntary & Special Remittance Cut-off",
+    title: "SSS Voluntary & Special Remittance Cut-off",
     description: "End-of-month contribution and loan amortization remittance cut-off date."
   });
   return dynamicEvents;
