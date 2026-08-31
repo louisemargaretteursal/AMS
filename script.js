@@ -1222,7 +1222,8 @@ const navigateToView = (viewName) => {
 };
 
 const refreshMainDashboard = () => {
-  const masterEmployers = getDashboardEmployers('MasterFile');
+  const officerViewName = getOfficerView(currentUser?.role);
+  const masterEmployers = getDashboardEmployers(officerViewName || 'MasterFile');
   const dashboardMetrics = getDashboardMetrics(masterEmployers);
 
   Object.entries(dashboardMetrics).forEach(([name, value]) => {
@@ -2887,7 +2888,8 @@ document.querySelectorAll('.status-row-clickable').forEach((row) => {
     } else if (action === 'settled') {
       navigateToView('MasterFile');
       const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
-      if (filter) { filter.value = 'Settled'; filterAoTable('MasterFile'); }
+      if (filter) { filter.value = 'Settled'; const activeView = getOfficerView(currentUser?.role) || 'MasterFile';
+    filterAoTable(activeView); }
     } else if (action === 'unsettled') {
       navigateToView('MasterFile');
       const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
