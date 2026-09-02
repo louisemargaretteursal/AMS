@@ -1,3 +1,8 @@
+const isNp = (p) => {
+  const s = String(p || '').toLowerCase();
+  return s.includes('non') || s.includes('np') || s.includes('special') || s.includes('sp');
+};
+
 let pendingDelete = null;
 let pieChart;
 let barChart;
@@ -552,18 +557,89 @@ const showCurrentDateNotification = () => {
   calendarNotificationClose.focus();
 };
 
+const getDynamicCalendarEvents = (year, month, daysInMonth) => {
+  const dynamicEvents = [];
+  const officerView = getOfficerView(currentUser?.role);
+  const employers = getDashboardEmployers(officerView || "MasterFile");
+  employers.forEach((emp) => {
+    const status = (emp.status || "").toLowerCase();
+    if (status.includes("settled") || status.includes("legal")) return;
+    const servedDateStr = emp.soa3_date || emp.soa2_date || emp.soa_date || emp.billing_date;
+    if (!servedDateStr) return;
+    const cleanDate = String(servedDateStr).split("T")[0];
+    const served = new Date(cleanDate);
+    if (isNaN(served.getTime())) return;
+    const dueDateObj = new Date(served.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const dueStr = formatCalendarDate(dueDateObj);
+    dynamicEvents.push({
+      id: "soa-due-" + emp.id,
+      isDynamic: true,
+      type: "soa-due",
+      event_date: dueStr,
+      title: "15-Day Due: " + (emp.employer_name || "Employer"),
+      description: "15-Day SOA compliance period expires. Current Status: " + (emp.status || "1st SOA Served") + ". Assigned: " + (emp.assigned_view || "AO1"),
+      employer: emp
+    });
+  });
+  employers.forEach((emp) => {
+    if (!emp.case_date) return;
+    const cleanDate = String(emp.case_date).split("T")[0];
+    dynamicEvents.push({
+      id: "legal-" + emp.id,
+      isDynamic: true,
+      type: "legal-case",
+      event_date: cleanDate,
+      title: "Legal Hearing: " + (emp.employer_name || "Employer"),
+      description: "Scheduled legal action / court hearing. Handling Lawyer: " + (emp.handling_lawyer || "Branch Legal") + ". Docket #: " + (emp.docket_number || "N/A"),
+      employer: emp
+    });
+  });
+  const mStr = String(month + 1).padStart(2, "0");
+  dynamicEvents.push({
+    id: "stat-10-" + year + "-" + month,
+    isDynamic: true,
+    type: "statutory",
+    event_date: year + "-" + mStr + "-10",
+    title: "SSS Regular Contribution Remittance Deadline",
+    description: "Official SSS monthly contribution remittance deadline for regular registered employers."
+  });
+  dynamicEvents.push({
+    id: "stat-end-" + year + "-" + month,
+    isDynamic: true,
+    type: "statutory",
+    event_date: year + "-" + mStr + "-" + String(daysInMonth).padStart(2, "0"),
+    title: "SSS Voluntary & Special Remittance Cut-off",
+    description: "End-of-month contribution and loan amortization remittance cut-off date."
+  });
+  return dynamicEvents;
+};
+window.openCalendarEmployerRecord = (employerId) => {
+  if (calendarSummaryModal) calendarSummaryModal.hidden = true;
+  if (calendarModal) calendarModal.hidden = true;
+  const matchingRow = document.querySelector("tr[data-employer-id=\"" + employerId + "\"]");
+  if (matchingRow) {
+    const assignedView = matchingRow.dataset.assignedView || "MasterFile";
+    navigateToView(assignedView);
+    matchingRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    matchingRow.classList.add("is-selected");
+    openEmployerEdit(matchingRow);
+  }
+};
+
 const renderCalendar = () => {
   const year = calendarMonth.getFullYear();
   const month = calendarMonth.getMonth();
-  calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   calendarGrid.replaceChildren();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dynamicEvents = getDynamicCalendarEvents(year, month, daysInMonth);
+  const allEvents = [...calendarEvents, ...dynamicEvents];
   for (let index = 0; index < firstDay + daysInMonth; index += 1) {
-    const dayCell = document.createElement('div');
-    dayCell.className = 'calendar-day';
+    const dayCell = document.createElement("div");
+    dayCell.className = "calendar-day";
     if (index < firstDay) {
-      dayCell.classList.add('calendar-day-empty');
+      dayCell.classList.add("calendar-day-empty");
     } else {
       const day = index - firstDay + 1;
       const date = formatCalendarDate(new Date(year, month, day));
@@ -1166,7 +1242,7 @@ const filterAoTable = (viewName) => {
 
   let rpCount = 0;
   let ipCount = 0;
-  let spCount = 0;
+  let npCount = 0;
   let dueCount = 0;
 
   rows.forEach((row) => {
@@ -1439,7 +1515,7 @@ const refreshMainDashboard = () => {
     if (!row) return;
     row.querySelector('[data-branch-metric="rp"]').textContent = metrics.rp;
     row.querySelector('[data-branch-metric="ip"]').textContent = metrics.ip;
-    row.querySelector('[data-branch-metric="sp"]').textContent = metrics.sp;
+    const npCell = row.querySelector("[data-branch-metric=\"np\"], [data-branch-metric=\"sp\"]"); if (npCell) npCell.textContent = metrics.np ?? metrics.sp;
     row.querySelector('[data-branch-metric="total"]').textContent = metrics.total;
     row.querySelector('[data-branch-metric="settled"]').textContent = metrics.settled;
     row.querySelector('[data-branch-metric="unsettled"]').textContent = metrics.unsettled;
@@ -3247,7 +3323,8 @@ document.querySelectorAll('.status-row-clickable').forEach((row) => {
     } else if (action === 'settled') {
       navigateToView('MasterFile');
       const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
-      if (filter) { filter.value = 'Settled'; filterAoTable('MasterFile'); }
+      if (filter) { filter.value = 'Settled'; const activeView = getOfficerView(currentUser?.role) || 'MasterFile';
+    filterAoTable(activeView); }
     } else if (action === 'unsettled') {
       navigateToView('MasterFile');
       const filter = document.querySelector('[data-ao-view="MasterFile"] [data-filter-status]');
