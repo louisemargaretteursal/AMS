@@ -226,7 +226,7 @@
                 <select name="payerType" id="payerTypeSelect" required>
                   <option value="Regular Payer">Regular Payer (RP)</option>
                   <option value="Interim Payer" selected>Interim Payer (IP)</option>
-                  <option value="Special Payer">Special Payer (SP)</option>
+                  <option value="NP - Non-Paying">NP - Non-Paying</option>
                 </select>
               </div>
               <div class="form-control-wrap">
@@ -620,7 +620,7 @@
                 <th>Officer</th>
                 <th>RP</th>
                 <th>IP</th>
-                <th>SP</th>
+                <th>NP</th>
                 <th>Total Records</th>
                 <th>Settled</th>
                 <th>Unsettled</th>
@@ -635,7 +635,7 @@
                 <td><strong>AO1</strong></td>
                 <td data-branch-metric="rp">0</td>
                 <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
+                <td data-branch-metric="np">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
@@ -648,7 +648,7 @@
                 <td><strong>AO2</strong></td>
                 <td data-branch-metric="rp">0</td>
                 <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
+                <td data-branch-metric="np">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
@@ -661,7 +661,7 @@
                 <td><strong>AO3</strong></td>
                 <td data-branch-metric="rp">0</td>
                 <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
+                <td data-branch-metric="np">0</td>
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
@@ -674,7 +674,7 @@
                 <td>TOTAL</td>
                 <td data-branch-total="rp">0</td>
                 <td data-branch-total="ip">0</td>
-                <td data-branch-total="sp">0</td>
+                <td data-branch-total="np">0</td>
                 <td data-branch-total="total">0</td>
                 <td data-branch-total="settled">0</td>
                 <td data-branch-total="unsettled">0</td>
@@ -807,7 +807,7 @@
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO1 table filters">
           <label class="ao-table-search">
@@ -913,7 +913,7 @@
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO2 table filters">
           <label class="ao-table-search">
@@ -1019,7 +1019,7 @@
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO3 table filters">
           <label class="ao-table-search">
@@ -1125,7 +1125,7 @@
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
           <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
           <label class="ao-table-search">

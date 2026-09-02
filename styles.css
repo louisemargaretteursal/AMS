@@ -3222,7 +3222,8 @@ body {
   border: 1px solid #bfdbfe;
 }
 
-.payer-badge-sp {
+.payer-badge-sp,
+.payer-badge-np {
   background: #fffbeb;
   color: #b45309;
   border: 1px solid #fde68a;

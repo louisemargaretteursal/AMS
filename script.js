@@ -1,3 +1,8 @@
+const isNp = (p) => {
+  const s = String(p || '').toLowerCase();
+  return s.includes('non') || s.includes('np') || s.includes('special') || s.includes('sp');
+};
+
 let pendingDelete = null;
 let pieChart;
 let barChart;
@@ -1110,14 +1115,14 @@ const filterAoTable = (viewName) => {
 
   let rpCount = 0;
   let ipCount = 0;
-  let spCount = 0;
+  let npCount = 0;
   let dueCount = 0;
 
   rows.forEach((row) => {
     const employer = JSON.parse(row.dataset.employer || '{}');
     const payerType = row.dataset.payerType || employer.payer_type || 'Interim Payer';
     if (payerType === 'Regular Payer') rpCount += 1;
-    else if (payerType === 'Special Payer') spCount += 1;
+    else if (isNp(payerType)) npCount += 1;
     else ipCount += 1;
 
     const soaInfo = getEmployerSoaInfo(employer);
@@ -1145,7 +1150,7 @@ const filterAoTable = (viewName) => {
     let matchesSheet = true;
     if (activeSheet === 'RP') matchesSheet = payerType === 'Regular Payer';
     else if (activeSheet === 'IP') matchesSheet = payerType === 'Interim Payer';
-    else if (activeSheet === 'SP') matchesSheet = payerType === 'Special Payer';
+    else if (activeSheet === "NP" || activeSheet === "SP") matchesSheet = isNp(payerType);
     else if (activeSheet === 'DUE') matchesSheet = soaInfo.isDue;
 
     const isVisible = matchesQuery && matchesDate && matchesStatus && matchesAddress && matchesView && matchesSheet;
@@ -1155,12 +1160,12 @@ const filterAoTable = (viewName) => {
   const countAll = view.querySelector('[data-sheet-count="ALL"]');
   const countRP = view.querySelector('[data-sheet-count="RP"]');
   const countIP = view.querySelector('[data-sheet-count="IP"]');
-  const countSP = view.querySelector('[data-sheet-count="SP"]');
+  const countSP = view.querySelector("[data-sheet-count=\"NP\"], [data-sheet-count=\"SP\"]");
   const countDUE = view.querySelector('[data-sheet-count="DUE"]');
   if (countAll) countAll.textContent = rows.length;
   if (countRP) countRP.textContent = rpCount;
   if (countIP) countIP.textContent = ipCount;
-  if (countSP) countSP.textContent = spCount;
+  if (countSP) countSP.textContent = npCount;
   if (countDUE) countDUE.textContent = dueCount;
 
   // Urgent Action Notification Banner in this AO view
@@ -1238,7 +1243,7 @@ const getDashboardMetrics = (employersOrRows, customTarget = null) => {
   const duplicateCount = duplicatesSet.size;
 
   const rp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('regular') || (e.payer_type || '').includes('RP')).length;
-  const sp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('special') || (e.payer_type || '').includes('SP')).length;
+  const np = employers.filter((e) => isNp(e.payer_type)).length; const sp = np;
   const ip = total - rp - sp;
   const ipSp = ip + sp;
 
@@ -1370,7 +1375,7 @@ const refreshMainDashboard = () => {
     if (!row) return;
     row.querySelector('[data-branch-metric="rp"]').textContent = metrics.rp;
     row.querySelector('[data-branch-metric="ip"]').textContent = metrics.ip;
-    row.querySelector('[data-branch-metric="sp"]').textContent = metrics.sp;
+    const npCell = row.querySelector("[data-branch-metric=\"np\"], [data-branch-metric=\"sp\"]"); if (npCell) npCell.textContent = metrics.np ?? metrics.sp;
     row.querySelector('[data-branch-metric="total"]').textContent = metrics.total;
     row.querySelector('[data-branch-metric="settled"]').textContent = metrics.settled;
     row.querySelector('[data-branch-metric="unsettled"]').textContent = metrics.unsettled;
@@ -2022,7 +2027,7 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   }
 
   const payerType = (employer?.payer_type || rowValues[2] || 'Interim Payer').trim();
-  const badgeClass = payerType === 'Regular Payer' ? 'payer-badge-rp' : payerType === 'Special Payer' ? 'payer-badge-sp' : 'payer-badge-ip';
+  const badgeClass = payerType === "Regular Payer" || payerType.includes("RP") ? "payer-badge-rp" : isNp(payerType) ? "payer-badge-np" : "payer-badge-ip";
   const badgeCode = payerType === 'Regular Payer' ? 'RP' : payerType === 'Special Payer' ? 'SP' : 'IP';
 
   const empData = employer || {
