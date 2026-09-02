@@ -1250,7 +1250,7 @@ const filterAoTable = (viewName) => {
     const payerType = row.dataset.payerType || employer.payer_type || 'Interim Payer';
     const isNonPaying = payerType === 'Non-Paying' || payerType === 'Non Paying' || payerType === 'Special Payer' || payerType === 'NP' || payerType === 'SP';
     if (payerType === 'Regular Payer' || payerType === 'RP') rpCount += 1;
-    else if (isNonPaying) spCount += 1;
+    else if (isNonPaying) npCount += 1;
     else ipCount += 1;
 
     const soaInfo = getEmployerSoaInfo(employer);
@@ -1294,8 +1294,8 @@ const filterAoTable = (viewName) => {
   if (countAll) countAll.textContent = rows.length;
   if (countRP) countRP.textContent = rpCount;
   if (countIP) countIP.textContent = ipCount;
-  if (countSP) countSP.textContent = spCount;
-  if (countNP) countNP.textContent = spCount;
+  if (countSP) countSP.textContent = npCount;
+  if (countNP) countNP.textContent = npCount;
   if (countDUE) countDUE.textContent = dueCount;
 
   // Urgent Action Notification Banner in this AO view
