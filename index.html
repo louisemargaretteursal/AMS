@@ -29,38 +29,40 @@
           </div>
 
           <div class="login-form-body">
-            <p class="login-instruction">Sign in to your account.</p>
+            <div class="login-form-card">
+              <p class="login-instruction">Sign in to your account.</p>
 
-            <div class="auth-input-group">
-              <label for="username">User ID</label>
-              <div class="auth-input-wrap">
-                <input id="username" name="username" type="text" autocomplete="username" placeholder="User ID" required>
-                <span class="auth-input-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </span>
+              <div class="auth-input-group">
+                <label for="username">User ID</label>
+                <div class="auth-input-wrap">
+                  <input id="username" name="username" type="text" autocomplete="username" placeholder="User ID" required>
+                  <span class="auth-input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div class="auth-input-group">
-              <label for="password">Password</label>
-              <div class="auth-input-wrap">
-                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
-                <button type="button" class="auth-toggle-pwd" id="togglePasswordBtn" aria-label="Toggle password visibility" title="Show/Hide password">
-                  <svg id="pwdEyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
-                  </svg>
-                </button>
+              <div class="auth-input-group">
+                <label for="password">Password</label>
+                <div class="auth-input-wrap">
+                  <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+                  <button type="button" class="auth-toggle-pwd" id="togglePasswordBtn" aria-label="Toggle password visibility" title="Show/Hide password">
+                    <svg id="pwdEyeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="1.8"></line>
+                    </svg>
+                  </button>
+                </div>
               </div>
+
+              <p class="login-error" id="loginError" role="alert" hidden></p>
+
+              <button class="login-submit" type="submit">Sign In</button>
             </div>
-
-            <p class="login-error" id="loginError" role="alert" hidden></p>
-
-            <button class="login-submit" type="submit">Sign In</button>
           </div>
 
           <div class="login-footer-meta">
@@ -70,15 +72,30 @@
         </form>
       </div>
     </div>
+
+    <!-- Official SSS Auth Loading & Transition Overlay -->
+    <div class="auth-loading-overlay" id="authLoadingOverlay" aria-live="polite">
+      <div class="auth-loading-content">
+        <div class="auth-loading-logo-ring">
+          <img class="auth-loading-logo" src="logo.png" alt="SSS Official Seal">
+        </div>
+        <h2 class="auth-loading-brand-title">Social Security System</h2>
+        <p class="auth-loading-brand-subtitle">Toledo City Branch Operations Portal</p>
+        <p class="auth-loading-status" id="authLoadingStatus">Verifying credentials...</p>
+        <div class="auth-loading-progress-track">
+          <div class="auth-loading-progress-bar" id="authLoadingProgressBar"></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <div class="page-wrapper" id="dashboardShell" hidden>
 
     <!-- Header -->
     <header class="main-header">
-      <span class="header-logo-window">
-        <img class="header-logo-img" src="logo.png" alt="SSS logo" style="width: 50px; height: 50px; object-fit: contain;">
-      </span>
+      <div class="header-logo-badge">
+        <img class="header-logo-img" src="logo.png" alt="SSS Logo">
+      </div>
       <h1 class="header-title">SOCIAL SECURITY SYSTEM</h1>
       <p class="header-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
       <p class="header-dashboard">MONTHLY OPERATIONS DASHBOARD</p>
@@ -87,28 +104,23 @@
 
     <!-- Navigation -->
     <nav class="nav-bar" id="mainNav">
+      <div class="nav-branding">
+        <img class="nav-brand-logo" src="logo.png" alt="SSS Logo">
+        <div class="nav-brand-copy">
+          <span class="nav-brand-title">Social Security System</span>
+          <span class="nav-brand-subtitle">Toledo City branch</span>
+        </div>
+      </div>
       <div class="dashboard-nav-item">
         <button class="nav-btn active" aria-label="Open dashboard" title="Dashboard">DASHBOARD</button>
         <button class="nav-btn org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">ORGANIZATIONAL CHART</button>
       </div>
       <button class="nav-btn calendar-open-btn" id="calendarOpenButton" type="button" aria-label="Open calendar" title="Calendar">CALENDAR</button>
-      <div class="nav-item" data-nav-view="AO1">
-        <button class="nav-btn" aria-label="Open AO1" title="AO1">AO1</button>
-        <button class="add-record-btn" type="button" aria-label="Add employer to AO1" data-form-view="AO1">+</button>
-      </div>
-      <div class="nav-item" data-nav-view="AO2">
-        <button class="nav-btn" aria-label="Open AO2" title="AO2">AO2</button>
-        <button class="add-record-btn" type="button" aria-label="Add employer to AO2" data-form-view="AO2">+</button>
-      </div>
-      <div class="nav-item" data-nav-view="AO3">
-        <button class="nav-btn" aria-label="Open AO3" title="AO3">AO3</button>
-        <button class="add-record-btn" type="button" aria-label="Add employer to AO3" data-form-view="AO3">+</button>
-      </div>
       <div class="nav-item" data-nav-view="MasterFile">
         <button class="nav-btn" aria-label="Open MasterFile" title="MasterFile">MASTERFILE</button>
-        <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile" hidden>+</button>
       </div>
-      <div class="nav-item" data-nav-view="EmployerForm">
+      <div class="nav-item" data-nav-view="EmployerForm" hidden>
         <button class="nav-btn" aria-label="Open data form" title="Data form">DATA FORM</button>
       </div>
       <div class="nav-item soa-notification-item">
@@ -117,7 +129,14 @@
         </button>
       </div>
       <div class="header-session sidebar-session">
-        <span id="loggedInUser"></span>
+        <span id="loggedInUser" hidden></span>
+        <div class="sidebar-profile" aria-label="Admin profile">
+          <div class="sidebar-avatar">A</div>
+          <div class="sidebar-user-meta">
+            <span class="sidebar-user-name">Admin</span>
+            <span class="sidebar-user-role">Administrator</span>
+          </div>
+        </div>
         <button id="logoutButton" type="button">Sign out</button>
       </div>
     </nav>
@@ -127,11 +146,11 @@
     <div class="modal-backdrop" id="soaReminderModal" hidden>
       <section class="calendar-modal soa-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="soaReminderTitle">
         <div class="calendar-modal-header">
-          <h2 id="soaReminderTitle">15-DAY SOA ACTION &amp; FORWARDING REMINDERS</h2>
+          <h2 id="soaReminderTitle">15-DAY SOA ACTION &amp; COMPLIANCE REMINDERS</h2>
           <button class="modal-close-btn" id="soaReminderClose" type="button" aria-label="Close reminders">&times;</button>
         </div>
         <div class="soa-reminder-content">
-          <p class="soa-reminder-desc">The following employers have reached or lapsed their <strong>15-day compliance period</strong>. Please review, forward records, and record the next SOA:</p>
+          <p class="soa-reminder-desc">The following employers have reached or lapsed their <strong>15-day compliance period</strong>. Please review and manage accounts in the MasterFile:</p>
           <div class="soa-reminder-list" id="soaReminderList"></div>
         </div>
       </section>
@@ -161,7 +180,7 @@
               <p class="modal-header-subtitle">Encode, assess, and manage employer billing stages</p>
             </div>
           </div>
-          <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
+          <button class="modal-close-btn" id="employerFormCloseBtn" type="button" aria-label="Close employer form">&times;</button>
         </div>
 
         <!-- Form Section Tabs -->
@@ -195,6 +214,13 @@
               <p>Core business profile, location, employee count, and compliance status.</p>
             </div>
 
+            <div class="admin-restricted-banner" id="adminRestrictedBanner" hidden>
+              <div class="admin-restricted-icon" aria-hidden="true">🔒</div>
+              <div>
+                <strong>Admin Restricted Mode:</strong> Basic demographic information and employer profile fields are read-only. Branch Administrators can modify billing assessments, collectibles, and payment amounts in the following tabs.
+              </div>
+            </div>
+
             <div class="form-grid-2">
               <div class="form-control-wrap">
                 <label for="f_employerNumber">Employer Number <span class="req">*</span></label>
@@ -210,9 +236,9 @@
               <div class="form-control-wrap">
                 <label for="payerTypeSelect">Payer Classification <span class="req">*</span></label>
                 <select name="payerType" id="payerTypeSelect" required>
-                  <option value="Regular Payer">Regular Payer (RP)</option>
-                  <option value="Interim Payer" selected>Interim Payer (IP)</option>
-                  <option value="Special Payer">Special Payer (SP)</option>
+                  <option value="Regular Payer">RP - Regularly Paying</option>
+                  <option value="Interim Payer" selected>IP - Intermittently Paying</option>
+                  <option value="Non-Paying">NP - Non-Paying</option>
                 </select>
               </div>
               <div class="form-control-wrap">
@@ -594,83 +620,114 @@
       </div>
     </section>
 
-    <!-- Middle Section: Tables -->
+    <!-- Branch Performance Table (Admin only) -->
+    <div class="panel panel-branch" data-admin-only>
+      <div class="panel-header">BRANCH PERFORMANCE BREAKDOWN</div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Officer</th>
+              <th>RP</th>
+              <th>IP</th>
+              <th>NP</th>
+              <th>Total Records</th>
+              <th>Settled</th>
+              <th>Unsettled</th>
+              <th>Collectibles (Billed)</th>
+              <th>Collections (Paid)</th>
+              <th>Balance</th>
+              <th>Collection Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-branch-row="AO1" class="branch-row-clickable" title="Click to open AO1 Database">
+              <td><strong>AO1</strong></td>
+              <td data-branch-metric="rp">0</td>
+              <td data-branch-metric="ip">0</td>
+              <td data-branch-metric="sp">0</td>
+              <td data-branch-metric="total">0</td>
+              <td data-branch-metric="settled">0</td>
+              <td data-branch-metric="unsettled">0</td>
+              <td data-branch-metric="billed">0.00</td>
+              <td data-branch-metric="paid">0.00</td>
+              <td data-branch-metric="balance">0.00</td>
+              <td data-branch-metric="accomplishment">0.00%</td>
+            </tr>
+            <tr data-branch-row="AO2" class="branch-row-clickable" title="Click to open AO2 Database">
+              <td><strong>AO2</strong></td>
+              <td data-branch-metric="rp">0</td>
+              <td data-branch-metric="ip">0</td>
+              <td data-branch-metric="sp">0</td>
+              <td data-branch-metric="total">0</td>
+              <td data-branch-metric="settled">0</td>
+              <td data-branch-metric="unsettled">0</td>
+              <td data-branch-metric="billed">0.00</td>
+              <td data-branch-metric="paid">0.00</td>
+              <td data-branch-metric="balance">0.00</td>
+              <td data-branch-metric="accomplishment">0.00%</td>
+            </tr>
+            <tr data-branch-row="AO3" class="branch-row-clickable" title="Click to open AO3 Database">
+              <td><strong>AO3</strong></td>
+              <td data-branch-metric="rp">0</td>
+              <td data-branch-metric="ip">0</td>
+              <td data-branch-metric="sp">0</td>
+              <td data-branch-metric="total">0</td>
+              <td data-branch-metric="settled">0</td>
+              <td data-branch-metric="unsettled">0</td>
+              <td data-branch-metric="billed">0.00</td>
+              <td data-branch-metric="paid">0.00</td>
+              <td data-branch-metric="balance">0.00</td>
+              <td data-branch-metric="accomplishment">0.00%</td>
+            </tr>
+            <tr class="total-row branch-row-clickable" data-branch-row="MasterFile" title="Click to open MasterFile">
+              <td>TOTAL</td>
+              <td data-branch-total="rp">0</td>
+              <td data-branch-total="ip">0</td>
+              <td data-branch-total="sp">0</td>
+              <td data-branch-total="total">0</td>
+              <td data-branch-total="settled">0</td>
+              <td data-branch-total="unsettled">0</td>
+              <td data-branch-total="billed">0.00</td>
+              <td data-branch-total="paid">0.00</td>
+              <td data-branch-total="balance">0.00</td>
+              <td data-branch-total="accomplishment">0.00%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Middle Section: Insights & Quality Monitor -->
     <section class="middle-section">
-      <!-- Branch Performance Table -->
-      <div class="panel panel-branch">
-        <div class="panel-header">BRANCH PERFORMANCE BREAKDOWN</div>
-        <div class="panel-body">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Officer</th>
-                <th>RP</th>
-                <th>IP</th>
-                <th>SP</th>
-                <th>Total Records</th>
-                <th>Settled</th>
-                <th>Unsettled</th>
-                <th>Collectibles (Billed)</th>
-                <th>Collections (Paid)</th>
-                <th>Balance</th>
-                <th>Collection Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr data-branch-row="AO1" class="branch-row-clickable" title="Click to open AO1 Database">
-                <td><strong>AO1</strong></td>
-                <td data-branch-metric="rp">0</td>
-                <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
-                <td data-branch-metric="total">0</td>
-                <td data-branch-metric="settled">0</td>
-                <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0.00</td>
-                <td data-branch-metric="paid">0.00</td>
-                <td data-branch-metric="balance">0.00</td>
-                <td data-branch-metric="accomplishment">0.00%</td>
-              </tr>
-              <tr data-branch-row="AO2" class="branch-row-clickable" title="Click to open AO2 Database">
-                <td><strong>AO2</strong></td>
-                <td data-branch-metric="rp">0</td>
-                <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
-                <td data-branch-metric="total">0</td>
-                <td data-branch-metric="settled">0</td>
-                <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0.00</td>
-                <td data-branch-metric="paid">0.00</td>
-                <td data-branch-metric="balance">0.00</td>
-                <td data-branch-metric="accomplishment">0.00%</td>
-              </tr>
-              <tr data-branch-row="AO3" class="branch-row-clickable" title="Click to open AO3 Database">
-                <td><strong>AO3</strong></td>
-                <td data-branch-metric="rp">0</td>
-                <td data-branch-metric="ip">0</td>
-                <td data-branch-metric="sp">0</td>
-                <td data-branch-metric="total">0</td>
-                <td data-branch-metric="settled">0</td>
-                <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">0.00</td>
-                <td data-branch-metric="paid">0.00</td>
-                <td data-branch-metric="balance">0.00</td>
-                <td data-branch-metric="accomplishment">0.00%</td>
-              </tr>
-              <tr class="total-row branch-row-clickable" data-branch-row="MasterFile" title="Click to open MasterFile">
-                <td>TOTAL</td>
-                <td data-branch-total="rp">0</td>
-                <td data-branch-total="ip">0</td>
-                <td data-branch-total="sp">0</td>
-                <td data-branch-total="total">0</td>
-                <td data-branch-total="settled">0</td>
-                <td data-branch-total="unsettled">0</td>
-                <td data-branch-total="billed">0.00</td>
-                <td data-branch-total="paid">0.00</td>
-                <td data-branch-total="balance">0.00</td>
-                <td data-branch-total="accomplishment">0.00%</td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Admin Insights Section (Admin only) -->
+      <div class="panel panel-insights" data-admin-only>
+        <div class="panel-header">EXECUTIVE ACTION INSIGHTS</div>
+        <div class="panel-body insights-body">
+          <div class="insights-container">
+            <div class="insight-card card-alert">
+              <div class="insight-badge badge-warning">Action Alert</div>
+              <p class="insight-text" data-insight="alerts">6 accounts have reached the 15-day compliance threshold and are ready for 2nd SOA forwarding.</p>
+            </div>
+            <div class="insight-card card-lead">
+              <div class="insight-badge badge-info">Top Jurisdiction</div>
+              <p class="insight-text" data-insight="leadingBranch">AO1 currently leads with 11 encoded accounts and highest active engagement.</p>
+            </div>
+            <div class="insight-card card-recovery">
+              <div class="insight-badge badge-success">Collection Progress</div>
+              <p class="insight-text" data-insight="billing">₱839,500.00 realized collections against ₱1.78M delinquent receivables.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AO Action Items Section (AO Officer only) -->
+      <div class="panel panel-insights ao-action-items" data-officer-only hidden>
+        <div class="panel-header">MY ACTION ITEMS &amp; PRIORITIES</div>
+        <div class="panel-body insights-body">
+          <div class="insights-container" id="aoActionItemsContainer">
+            <!-- Populated by script.js -->
+          </div>
         </div>
       </div>
 
@@ -701,19 +758,19 @@
                 <td><span class="status-pill pill-gray" data-status-metric="pendingSoa">0</span></td>
               </tr>
               <tr>
-                <td><span class="status-dot dot-gray"></span> Unassessed IP/SP (₱0.00 Amount)</td>
+                <td><span class="status-dot dot-gray"></span> Unassessed IP/NP (₱0.00 Amount)</td>
                 <td><span class="status-pill pill-gray" data-status-metric="missingAmount">0</span></td>
               </tr>
               <tr>
                 <td><span class="status-dot dot-amber"></span> Duplicate SSS Employer IDs</td>
                 <td><span class="status-pill pill-amber" data-status-metric="duplicateCount">0</span></td>
               </tr>
-              <tr class="status-row-clickable" data-monitor-action="rp" title="Click to view Regular Payers">
-                <td><span class="status-dot dot-blue"></span> Regular Payers (RP)</td>
+              <tr class="status-row-clickable" data-monitor-action="rp" title="Click to view Regularly Paying">
+                <td><span class="status-dot dot-blue"></span> Regularly Paying (RP)</td>
                 <td><span class="status-pill pill-blue" data-status-metric="rp">0</span></td>
               </tr>
-              <tr class="status-row-clickable" data-monitor-action="ipSp" title="Click to view Interim & Special Payers">
-                <td><span class="status-dot dot-blue"></span> Interim &amp; Special Payers (IP/SP)</td>
+              <tr class="status-row-clickable" data-monitor-action="ipSp" title="Click to view Interim & Non Paying">
+                <td><span class="status-dot dot-blue"></span> Interim &amp; Non Paying (IP/NP)</td>
                 <td><span class="status-pill pill-blue" data-status-metric="ipSp">0</span></td>
               </tr>
             </tbody>
@@ -722,9 +779,10 @@
       </div>
     </section>
 
-    <!-- Bottom Section: Charts + Insights -->
+    <!-- Bottom Section: Charts -->
     <section class="bottom-section">
-      <div class="charts-area">
+      <!-- Admin Charts Section -->
+      <div class="charts-area" data-admin-only>
         <div class="panel panel-charts">
           <div class="panel-header">BRANCH PERFORMANCE &amp; BILLING LIFECYCLE CHARTS</div>
           <div class="charts-grid">
@@ -750,28 +808,33 @@
         </div>
       </div>
 
-      <div class="panel panel-insights">
-        <div class="panel-header">EXECUTIVE ACTION INSIGHTS</div>
-        <div class="panel-body insights-body">
-          <div class="insights-container">
-            <div class="insight-card card-alert">
-              <div class="insight-badge badge-warning">Action Alert</div>
-              <p class="insight-text" data-insight="alerts">6 accounts have reached the 15-day compliance threshold and are ready for 2nd SOA forwarding.</p>
+      <!-- AO Personal Performance Charts Section -->
+      <div class="charts-area ao-charts-area" data-officer-only hidden>
+        <div class="panel panel-charts">
+          <div class="panel-header">MY PERSONAL PERFORMANCE</div>
+          <div class="charts-grid">
+            <div class="chart-box">
+              <p class="chart-title">MY ACCOUNTS BY STAGE</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="aoStageChart"></canvas>
+              </div>
             </div>
-            <div class="insight-card card-lead">
-              <div class="insight-badge badge-info">Top Jurisdiction</div>
-              <p class="insight-text" data-insight="leadingBranch">AO1 currently leads with 11 encoded accounts and highest active engagement.</p>
+            <div class="chart-box">
+              <p class="chart-title">MY ACCOUNTS BY PAYER TYPE</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="aoPayerChart"></canvas>
+              </div>
             </div>
-            <div class="insight-card card-recovery">
-              <div class="insight-badge badge-success">Collection Progress</div>
-              <p class="insight-text" data-insight="billing">₱839,500.00 realized collections against ₱1.78M delinquent receivables.</p>
+            <div class="chart-box">
+              <p class="chart-title">MY MONTHLY ENCODING ACTIVITY</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="aoEncodingChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-
-    </main>
 
     </main>
 
@@ -791,9 +854,9 @@
         <div class="ao-sheet-tabs" role="tablist">
           <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">RP - Regularly Paying <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">IP - Intermittently Paying <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO1 table filters">
           <label class="ao-table-search">
@@ -833,7 +896,6 @@
             <span class="ao-title-text">ACCOUNT OFFICER 1 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO1">Summary</button>
             <button class="table-export-btn" type="button" data-table-export="AO1">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button>
           </div>
@@ -867,7 +929,7 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
-              <col class="col-actions" style="width: 90px;">
+              <col class="col-actions" style="width: 120px;">
             </colgroup>
             <thead>
               <tr>
@@ -897,9 +959,9 @@
         <div class="ao-sheet-tabs" role="tablist">
           <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">RP - Regularly Paying <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">IP - Intermittently Paying <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO2 table filters">
           <label class="ao-table-search">
@@ -939,7 +1001,6 @@
             <span class="ao-title-text">ACCOUNT OFFICER 2 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO2">Summary</button>
             <button class="table-export-btn" type="button" data-table-export="AO2">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button>
           </div>
@@ -973,7 +1034,7 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
-              <col class="col-actions" style="width: 90px;">
+              <col class="col-actions" style="width: 120px;">
             </colgroup>
             <thead>
               <tr>
@@ -1003,9 +1064,9 @@
         <div class="ao-sheet-tabs" role="tablist">
           <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">RP - Regularly Paying <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">IP - Intermittently Paying <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters" aria-label="AO3 table filters">
           <label class="ao-table-search">
@@ -1045,7 +1106,6 @@
             <span class="ao-title-text">ACCOUNT OFFICER 3 DATABASE</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-dashboard-btn" type="button" data-table-dashboard="AO3">Summary</button>
             <button class="table-export-btn" type="button" data-table-export="AO3">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button>
           </div>
@@ -1079,7 +1139,7 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
-              <col class="col-actions" style="width: 90px;">
+              <col class="col-actions" style="width: 120px;">
             </colgroup>
             <thead>
               <tr>
@@ -1109,9 +1169,9 @@
         <div class="ao-sheet-tabs" role="tablist">
           <button class="ao-sheet-tab active" type="button" data-sheet="ALL">All Records <span class="sheet-count" data-sheet-count="ALL">0</span></button>
           <button class="ao-sheet-tab ao-tab-due" type="button" data-sheet="DUE">Due for Escalation <span class="sheet-count sheet-count-due" data-sheet-count="DUE">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="RP">Regular Payer (RP) <span class="sheet-count" data-sheet-count="RP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="IP">Interim Payer (IP) <span class="sheet-count" data-sheet-count="IP">0</span></button>
-          <button class="ao-sheet-tab" type="button" data-sheet="SP">Special Payer (SP) <span class="sheet-count" data-sheet-count="SP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="RP">RP - Regularly Paying <span class="sheet-count" data-sheet-count="RP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="IP">IP - Intermittently Paying <span class="sheet-count" data-sheet-count="IP">0</span></button>
+          <button class="ao-sheet-tab" type="button" data-sheet="NP">NP - Non-Paying <span class="sheet-count" data-sheet-count="NP">0</span></button>
         </div>
         <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
           <label class="ao-table-search">
@@ -1160,7 +1220,6 @@
             <span class="ao-title-text">SSS TOLEDO ALL BRANCH RECORDS</span>
           </div>
           <div class="ao-table-actions">
-            <button class="table-dashboard-btn" type="button" data-table-dashboard="MasterFile">Summary</button>
             <button class="table-export-btn" type="button" data-table-export="MasterFile">Export CSV</button>
             <button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button>
           </div>
@@ -1194,7 +1253,7 @@
               <col class="col-date" style="width: 120px;">
               <col class="col-status" style="width: 400px;">
               <col class="col-person" style="width: 200px;">
-              <col class="col-actions" style="width: 90px;">
+              <col class="col-actions" style="width: 120px;">
             </colgroup>
             <thead>
               <tr>
@@ -1254,9 +1313,10 @@
     </div>
 
     <main class="org-chart-page" id="orgChartModal" hidden aria-labelledby="orgChartTitle">
-        <div class="employer-modal-header">
-          <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
-          <button class="org-chart-page-back" id="orgChartClose" type="button">&#8592; Back</button>
+        <div class="employer-modal-header org-chart-header">
+          <div class="org-chart-header-meta">
+            <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
+          </div>
         </div>
         <div class="org-chart-content">
           <div class="org-chart-level org-chart-root-level" data-org-chart-group="root"></div>
@@ -1321,9 +1381,16 @@
     <div class="modal-backdrop delete-confirm-backdrop" id="deleteConfirmModal" hidden>
       <section class="delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
         <button class="delete-confirm-close" id="deleteConfirmClose" type="button" aria-label="Close delete confirmation">&times;</button>
-        <div class="delete-confirm-icon" aria-hidden="true">&#128465;</div>
-        <h2 id="deleteConfirmTitle">Delete selected data?</h2>
-        <p>Are you sure you want to delete the selected data?</p>
+        <div class="delete-confirm-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </div>
+        <h2 id="deleteConfirmTitle">Delete Settled Employer?</h2>
+        <p>Are you sure you want to delete this record? This action cannot be undone.</p>
         <p class="delete-confirm-error" id="deleteConfirmError" role="alert" hidden></p>
         <div class="delete-confirm-actions">
           <button class="delete-cancel-btn" id="deleteConfirmCancel" type="button">No, cancel</button>
@@ -1334,10 +1401,19 @@
 
     <div class="modal-backdrop logout-confirm-backdrop" id="logoutConfirmModal" hidden>
       <section class="logout-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+        <button class="logout-confirm-close" id="logoutConfirmClose" type="button" aria-label="Close logout confirmation">&times;</button>
+        <div class="logout-confirm-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </div>
         <h2 id="logoutConfirmTitle">Are you sure you want to log out?</h2>
+        <p>You'll need to sign in again to access your dashboard.</p>
         <div class="logout-confirm-actions">
-          <button class="logout-approve-btn" id="logoutConfirmApprove" type="button">Log out</button>
           <button class="logout-cancel-btn" id="logoutConfirmCancel" type="button">Cancel</button>
+          <button class="logout-approve-btn" id="logoutConfirmApprove" type="button">Log out</button>
         </div>
       </section>
     </div>
@@ -1346,7 +1422,6 @@
       <section class="calendar-modal">
         <div class="calendar-modal-header">
           <h2 id="calendarTitle">CALENDAR</h2>
-          <button class="calendar-page-back" id="calendarClose" type="button">&#8592; Back</button>
         </div>
         <div class="calendar-toolbar">
           <button class="calendar-nav-btn" id="calendarPrevious" type="button" aria-label="Previous month">&#8592;</button>
@@ -1384,6 +1459,10 @@
           <button class="modal-close-btn" id="calendarSummaryClose" type="button" aria-label="Close event summary">&times;</button>
         </div>
         <div class="calendar-summary" id="calendarSummary"></div>
+        <div class="calendar-summary-actions">
+          <button class="calendar-add-btn" id="calendarEditEvent" type="button">Edit event</button>
+          <button class="delete-approve-btn" id="calendarDeleteEvent" type="button">Delete event</button>
+        </div>
       </section>
     </div>
 

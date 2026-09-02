@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { validateRbacLogin } = require('../api/server.js');
+const { validateRbacLogin, normalizeCalendarDateValue, filterEmployersForUser } = require('../api/server.js');
 
 const cases = [
   {
@@ -39,4 +39,25 @@ for (const testCase of cases) {
   assert.deepEqual(result, testCase.expected, `${testCase.name} mismatch`);
 }
 
-console.log(`Validated ${cases.length} RBAC login cases.`);
+const dateCases = [
+  ['2026-08-19', '2026-08-19'],
+  ['2026-08-19T00:00:00.000Z', '2026-08-19'],
+  ['2026-08-19T16:00:00.000Z', '2026-08-19'],
+  ['', null],
+];
+
+for (const [input, expected] of dateCases) {
+  assert.equal(normalizeCalendarDateValue(input), expected, `Calendar date normalization mismatch for ${input}`);
+}
+
+const employers = [
+  { id: 1, assigned_view: 'AO1', employer_name: 'Alpha' },
+  { id: 2, assigned_view: 'AO2', employer_name: 'Bravo' },
+  { id: 3, assigned_view: 'AO1', employer_name: 'Charlie' },
+  { id: 4, assigned_view: 'AO3', employer_name: 'Delta' },
+];
+
+assert.deepEqual(filterEmployersForUser(employers, { role: 'Account Officer 1' }), [employers[0], employers[2]], 'AO1 should only see AO1 employers');
+assert.deepEqual(filterEmployersForUser(employers, { role: 'Admin' }), employers, 'Admin should still see all employers');
+
+console.log(`Validated ${cases.length} RBAC login cases, ${dateCases.length} calendar date cases, and ${3} user-data scoping checks.`);

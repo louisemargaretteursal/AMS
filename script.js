@@ -2,6 +2,9 @@ let pendingDelete = null;
 let pieChart;
 let barChart;
 let groupedBarChart;
+let aoStageChart;
+let aoPayerChart;
+let aoEncodingChart;
 const authScreen = document.getElementById('authScreen');
 const dashboardShell = document.getElementById('dashboardShell');
 const loginForm = document.getElementById('loginForm');
@@ -18,9 +21,10 @@ const employerSuccessOk = document.getElementById('employerSuccessOk');
 const logoutConfirmModal = document.getElementById('logoutConfirmModal');
 const logoutConfirmApprove = document.getElementById('logoutConfirmApprove');
 const logoutConfirmCancel = document.getElementById('logoutConfirmCancel');
+const logoutConfirmClose = document.getElementById('logoutConfirmClose');
 const pageWrapper = document.getElementById('dashboardShell');
 let currentUser = null;
-const AUTH_TRANSITION_MS = 1200;
+const AUTH_TRANSITION_MS = 1000;
 let editingEmployerId = null;
 let databaseNotificationTimer;
 
@@ -33,7 +37,66 @@ const getOfficerView = (role) => {
     : '';
 };
 
+const getCurrentOfficerCode = () => getOfficerView(currentUser?.role) || null;
+const isAdminSideRole = (role) => ['Admin', 'Super Admin'].includes(String(role || '').trim());
+
+const synchronizeOfficerMasterfileView = () => {
+  const officerView = getCurrentOfficerCode();
+  const masterFileView = document.querySelector('[data-ao-view="MasterFile"]');
+  if (!masterFileView) return;
+
+  const branchSelector = masterFileView.querySelector('[data-filter-branch]');
+  if (branchSelector && officerView) {
+    const branchSelectorLabel = branchSelector.closest('label');
+    if (branchSelectorLabel) branchSelectorLabel.remove();
+  }
+
+  const badge = masterFileView.querySelector('.ao-title-badge');
+  const title = masterFileView.querySelector('.ao-title-text');
+  const bannerText = masterFileView.querySelector('.ao-banner-text');
+
+  if (officerView) {
+    if (badge) badge.textContent = officerView;
+    if (title) title.textContent = `${officerView}'S RECORDS`;
+    if (bannerText) {
+      bannerText.innerHTML = `<strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="MasterFile">0</span> of your account(s) have exceeded their 15-day compliance deadline.`;
+    }
+  } else {
+    if (badge) badge.textContent = 'MASTERFILE';
+    if (title) title.textContent = 'SSS TOLEDO ALL BRANCH RECORDS';
+    if (bannerText) {
+      bannerText.innerHTML = '<strong>ACTION REQUIRED:</strong> <span class="ao-banner-count" data-banner-count="MasterFile">0</span> total branch account(s) have exceeded their 15-day compliance deadline.';
+    }
+  }
+};
+
+const syncOfficerDashboardPanels = () => {
+  const officerView = getCurrentOfficerCode();
+  const isOfficer = Boolean(officerView);
+
+  document.querySelectorAll('[data-admin-only]').forEach((el) => {
+    el.hidden = isOfficer;
+  });
+  document.querySelectorAll('[data-officer-only]').forEach((el) => {
+    el.hidden = !isOfficer;
+  });
+};
+
 const isOfficerRole = (role) => Boolean(getOfficerView(role));
+
+// Map internal payer type values to display labels (for badge and UI text)
+const getPayerTypeDisplayName = (internalPayerType) => {
+  const displayMap = {
+    'Regular Payer': 'Regularly Paying',
+    'Interim Payer': 'Intermittently Paying',
+    'Non-Paying': 'Non-Paying',
+    'Non Paying': 'Non-Paying',
+    'Special Payer': 'Non-Paying',
+    'NP': 'Non-Paying',
+    'SP': 'Non-Paying',
+  };
+  return displayMap[internalPayerType] || internalPayerType;
+};
 
 const showAuthForm = (formName) => {
   const isRegister = formName === 'register';
@@ -41,14 +104,60 @@ const showAuthForm = (formName) => {
   registerForm.hidden = !isRegister;
 };
 
+const syncSidebarProfile = (account) => {
+  const nameEl = document.querySelector('.sidebar-user-name');
+  const roleEl = document.querySelector('.sidebar-user-role');
+  const avatarEl = document.querySelector('.sidebar-avatar');
+  if (!nameEl || !roleEl || !avatarEl) return;
+
+  const officerMode = Boolean(getOfficerView(account?.role));
+
+  if (officerMode) {
+    const username = account?.username || 'user';
+    const role = account?.role || 'User';
+    const initial = String(username || role || 'U').trim().charAt(0).toUpperCase() || 'U';
+    nameEl.textContent = username;
+    roleEl.textContent = role;
+    avatarEl.textContent = initial;
+    return;
+  }
+
+  nameEl.textContent = 'Admin';
+  roleEl.textContent = 'Administrator';
+  avatarEl.textContent = 'A';
+};
+
 const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
   currentUser = account;
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
-  const superAdmin = account.role === 'Super Admin';
+  const adminSideRole = isAdminSideRole(account.role);
+  syncSidebarProfile(account);
   pageWrapper.classList.toggle('officer-mode', officerMode);
   pageWrapper.classList.toggle('dashboard-active', !officerMode);
   pageWrapper.dataset.officerView = officerViewName;
+
+  document.querySelectorAll('.add-record-btn').forEach((button) => {
+    const shouldHideAddRecord = adminSideRole;
+    button.hidden = shouldHideAddRecord;
+    button.style.display = shouldHideAddRecord ? 'none' : '';
+  });
+
+  // For AO users, ensure EmployerForm nav item exists (may have been removed for admin-side roles)
+  if (officerMode) {
+    const masterFileNav = document.querySelector('#mainNav .nav-item[data-nav-view="MasterFile"]');
+    const existingEmployerFormNav = document.querySelector('#mainNav .nav-item[data-nav-view="EmployerForm"]');
+    if (!existingEmployerFormNav && masterFileNav) {
+      const employerFormNav = document.createElement('div');
+      employerFormNav.className = 'nav-item';
+      employerFormNav.setAttribute('data-nav-view', 'EmployerForm');
+      employerFormNav.innerHTML = '<button class="nav-btn" aria-label="Open data form" title="Data form">DATA FORM</button>';
+      masterFileNav.insertAdjacentElement('afterend', employerFormNav);
+      employerFormNav.querySelector('.nav-btn').addEventListener('click', () => {
+        openEmployerModal(getOfficerView(currentUser?.role) || 'AO1');
+      });
+    }
+  }
 
   const orgChartBtn = document.querySelector('.org-chart-btn');
   if (orgChartBtn) {
@@ -58,13 +167,33 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
-    navItem.hidden = (superAdmin && navView.startsWith('AO'))
-      || (superAdmin && navView === 'EmployerForm')
-      || (officerMode && navView !== officerViewName && navView !== 'EmployerForm');
+    // Hide the Data Form and AO views only on admin-side roles; other users retain access.
+    if (adminSideRole && navView === 'EmployerForm') {
+      navItem.remove();
+      return;
+    }
+    navItem.hidden = (adminSideRole && navView.startsWith('AO'))
+      || (officerMode && navView !== officerViewName && navView !== 'EmployerForm' && navView !== 'MasterFile');
   });
 
   const soaNotification = document.querySelector('.soa-notification-item');
   if (soaNotification) soaNotification.hidden = false;
+
+  // Toggle visibility of admin-only and officer-only dashboard sections
+  document.querySelectorAll('[data-admin-only]').forEach((el) => {
+    el.hidden = officerMode;
+  });
+  document.querySelectorAll('[data-officer-only]').forEach((el) => {
+    el.hidden = !officerMode;
+  });
+
+  // For AO users, initialize personal performance charts
+  if (officerMode) {
+    setTimeout(() => {
+      initializeAoPersonalCharts(officerViewName);
+      populateAoActionItems(officerViewName);
+    }, 100);
+  }
 
   const defaultView = officerMode ? officerViewName : 'DASHBOARD';
   navigateToView(defaultView);
@@ -72,13 +201,39 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
   if (animate) {
     authScreen.hidden = false;
+    authScreen.classList.remove('is-fading-out');
     authScreen.classList.add('is-authenticating');
+
+    const statusEl = document.getElementById('authLoadingStatus');
+    if (statusEl) statusEl.textContent = 'Verifying credentials...';
+
     window.setTimeout(() => {
-      authScreen.classList.remove('is-authenticating');
-      authScreen.hidden = true;
+      if (statusEl) {
+        statusEl.style.opacity = '0';
+        window.setTimeout(() => {
+          statusEl.textContent = 'Preparing your workspace...';
+          statusEl.style.opacity = '1';
+        }, 70);
+      }
+    }, Math.round(AUTH_TRANSITION_MS * 0.55));
+
+    window.setTimeout(() => {
+      // Begin smooth cross-fade handoff
+      authScreen.classList.add('is-fading-out');
       dashboardShell.hidden = false;
+      dashboardShell.classList.add('is-entering');
       navigateToView(defaultView);
-      if (onAnimationEnd) onAnimationEnd();
+
+      window.setTimeout(() => {
+        authScreen.classList.remove('is-authenticating', 'is-fading-out');
+        authScreen.hidden = true;
+        if (statusEl) statusEl.textContent = 'Verifying credentials...';
+        if (onAnimationEnd) onAnimationEnd();
+
+        window.setTimeout(() => {
+          dashboardShell.classList.remove('is-entering');
+        }, 350);
+      }, 250);
     }, AUTH_TRANSITION_MS);
     return;
   }
@@ -90,6 +245,7 @@ const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
 
 const signOut = () => {
   currentUser = null;
+  syncSidebarProfile({ role: 'Admin', username: 'admin' });
   logoutConfirmModal.hidden = true;
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
@@ -193,10 +349,25 @@ const closeLogoutConfirmation = () => {
 logoutButton.addEventListener('click', openLogoutConfirmation);
 logoutConfirmApprove.addEventListener('click', signOut);
 logoutConfirmCancel.addEventListener('click', closeLogoutConfirmation);
+if (logoutConfirmClose) logoutConfirmClose.addEventListener('click', closeLogoutConfirmation);
+logoutConfirmModal.addEventListener('click', (event) => {
+  if (event.target === logoutConfirmModal) closeLogoutConfirmation();
+});
 
 /* Static dashboard data — mirrors screenshot values exactly */
 
 const navButtons = document.querySelectorAll('.nav-btn');
+const clearActiveNavButtons = (selectedButton = null) => {
+  const buttonsToClear = [
+    ...document.querySelectorAll('.nav-btn'),
+    calendarOpenButton,
+    document.querySelector('.org-chart-btn'),
+  ].filter(Boolean);
+
+  buttonsToClear.forEach((button) => {
+    if (button !== selectedButton) button.classList.remove('active');
+  });
+};
 const mainNav = document.getElementById('mainNav');
 const dashboardView = document.getElementById('dashboardView');
 const employerFormView = document.getElementById('employerFormView');
@@ -236,6 +407,8 @@ const calendarError = document.getElementById('calendarError');
 const calendarSummaryModal = document.getElementById('calendarSummaryModal');
 const calendarSummaryClose = document.getElementById('calendarSummaryClose');
 const calendarSummary = document.getElementById('calendarSummary');
+const calendarEditEvent = document.getElementById('calendarEditEvent');
+const calendarDeleteEvent = document.getElementById('calendarDeleteEvent');
 const calendarNotificationModal = document.getElementById('calendarNotificationModal');
 const calendarNotificationClose = document.getElementById('calendarNotificationClose');
 const calendarNotificationOpen = document.getElementById('calendarNotificationOpen');
@@ -244,8 +417,12 @@ const calendarNotificationSummary = document.getElementById('calendarNotificatio
 let calendarEvents = [];
 let branchSummary = null;
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let selectedCalendarDate = null;
+let calendarEditingEventId = null;
+let activeCalendarSummaryEvent = null;
 let calendarReturnView = 'DASHBOARD';
 let orgChartReturnView = 'DASHBOARD';
+let employerFormReturnView = 'DASHBOARD';
 const orgChartGroups = {
   root: document.querySelector('[data-org-chart-group="root"]'),
   admin: document.querySelector('[data-org-chart-group="admin"]'),
@@ -253,7 +430,51 @@ const orgChartGroups = {
 };
 const orgChartContent = document.querySelector('.org-chart-content');
 
-const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
+const normalizeCalendarDateString = (value) => {
+  if (!value && value !== 0) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  const dateOnly = raw.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dateOnly;
+  const isoDate = raw.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoDate) return isoDate[0];
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return formatCalendarDate(parsed);
+};
+
+const formatCalendarDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+selectedCalendarDate = formatCalendarDate(new Date());
+
+const openCalendarEventModalForDate = (date, event = null) => {
+  selectedCalendarDate = date || formatCalendarDate(new Date());
+  if (!calendarEventForm) return;
+  calendarEventForm.reset();
+  if (calendarError) calendarError.hidden = true;
+  const submitButton = calendarEventForm.querySelector('button[type="submit"]');
+  const titleHeader = document.getElementById('calendarEventTitle');
+  if (event) {
+    calendarEditingEventId = event.id;
+    if (titleHeader) titleHeader.textContent = 'EDIT EVENT';
+    calendarEventForm.elements.title.value = event.title || '';
+    calendarEventForm.elements.date.value = normalizeCalendarDateString(event.event_date || selectedCalendarDate);
+    calendarEventForm.elements.description.value = event.description || '';
+    if (submitButton) submitButton.textContent = 'Update event';
+  } else {
+    calendarEditingEventId = null;
+    if (titleHeader) titleHeader.textContent = 'ADD EVENT';
+    calendarEventForm.elements.date.value = selectedCalendarDate;
+    if (submitButton) submitButton.textContent = 'Save event';
+  }
+  calendarEventModal.hidden = false;
+  calendarEventForm.elements.title.focus();
+};
+
 const updateEmployerTotals = () => {
   if (!employerForm) return;
   const principal = parseAmount(employerForm.elements.principal?.value);
@@ -348,13 +569,20 @@ const renderCalendar = () => {
       const date = formatCalendarDate(new Date(year, month, day));
       if (date === formatCalendarDate(new Date())) dayCell.classList.add('is-today');
       dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
-      calendarEvents.filter((event) => event.event_date === date).forEach((event) => {
+      dayCell.addEventListener('click', () => {
+        openCalendarEventModalForDate(date);
+      });
+      calendarEvents.filter((event) => normalizeCalendarDateString(event.event_date) === date).forEach((event) => {
         const eventButton = document.createElement('button');
         eventButton.className = 'calendar-event';
         eventButton.type = 'button';
         eventButton.textContent = event.title;
-        eventButton.addEventListener('click', () => {
-          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${event.event_date}</p><p>${event.description || 'No description provided.'}</p>`;
+        eventButton.addEventListener('click', (eventClick) => {
+          eventClick.stopPropagation();
+          activeCalendarSummaryEvent = event;
+          if (calendarEditEvent) calendarEditEvent.dataset.eventId = String(event.id);
+          if (calendarDeleteEvent) calendarDeleteEvent.dataset.eventId = String(event.id);
+          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${normalizeCalendarDateString(event.event_date)}</p><p>${event.description || 'No description provided.'}</p>`;
           calendarSummaryModal.hidden = false;
           calendarSummaryClose.focus();
         });
@@ -369,7 +597,10 @@ const loadCalendarEvents = async ({ showNotification = true } = {}) => {
   if (!currentUser) return;
   const response = await fetch('/api/calendar-events', { headers: { Authorization: `Bearer ${currentUser.accessToken}` } });
   if (!response.ok) throw new Error('Unable to load calendar events.');
-  calendarEvents = await response.json();
+  calendarEvents = (await response.json()).map((event) => ({
+    ...event,
+    event_date: normalizeCalendarDateString(event.event_date),
+  }));
   renderCalendar();
   if (showNotification) window.setTimeout(showCurrentDateNotification, 500);
 };
@@ -382,11 +613,12 @@ const showCalendarPage = () => {
   employerFormView.hidden = true;
   aoViews.forEach((view) => { view.hidden = true; });
   document.querySelector('.ao-views').classList.remove('is-active');
+  clearActiveNavButtons(calendarOpenButton);
   calendarModal.hidden = false;
   calendarOpenButton.classList.add('active');
   document.querySelector('.dashboard-nav-item .org-chart-btn').classList.remove('active');
   renderCalendar();
-  calendarClose.focus();
+  if (calendarClose) calendarClose.focus();
 };
 
 const closeCalendar = () => {
@@ -394,34 +626,86 @@ const closeCalendar = () => {
   calendarOpenButton.classList.remove('active');
   navigateToView(calendarReturnView);
 };
-const closeCalendarEvent = () => { calendarEventModal.hidden = true; };
-const closeCalendarSummary = () => { calendarSummaryModal.hidden = true; };
+const closeCalendarEvent = () => {
+  calendarEditingEventId = null;
+  if (calendarEventForm) {
+    const submitButton = calendarEventForm.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.textContent = 'Save event';
+    const titleHeader = document.getElementById('calendarEventTitle');
+    if (titleHeader) titleHeader.textContent = 'ADD EVENT';
+  }
+  calendarEventModal.hidden = true;
+};
+const closeCalendarSummary = () => {
+  activeCalendarSummaryEvent = null;
+  if (calendarEditEvent) calendarEditEvent.removeAttribute('data-event-id');
+  if (calendarDeleteEvent) calendarDeleteEvent.removeAttribute('data-event-id');
+  calendarSummaryModal.hidden = true;
+};
 const closeCalendarNotification = () => { calendarNotificationModal.hidden = true; };
 
-calendarOpenButton.addEventListener('click', () => {
+const resolveActiveCalendarEvent = () => {
+  const eventId = (calendarEditEvent?.dataset?.eventId || calendarDeleteEvent?.dataset?.eventId || activeCalendarSummaryEvent?.id);
+  if (eventId == null || eventId === '') {
+    return activeCalendarSummaryEvent || null;
+  }
+  const foundEvent = calendarEvents.find((event) => String(event.id) === String(eventId));
+  if (foundEvent) {
+    activeCalendarSummaryEvent = foundEvent;
+    if (calendarEditEvent) calendarEditEvent.dataset.eventId = String(foundEvent.id);
+    if (calendarDeleteEvent) calendarDeleteEvent.dataset.eventId = String(foundEvent.id);
+  }
+  return foundEvent || activeCalendarSummaryEvent || null;
+};
+
+if (calendarOpenButton) calendarOpenButton.addEventListener('click', () => {
   showCalendarPage();
 });
-calendarClose.addEventListener('click', closeCalendar);
-calendarPrevious.addEventListener('click', () => {
+if (calendarClose) calendarClose.addEventListener('click', closeCalendar);
+if (calendarPrevious) calendarPrevious.addEventListener('click', () => {
   calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
   renderCalendar();
 });
-calendarNext.addEventListener('click', () => {
+if (calendarNext) calendarNext.addEventListener('click', () => {
   calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
   renderCalendar();
 });
-calendarAddEvent.addEventListener('click', () => {
-  calendarEventForm.reset();
-  calendarError.hidden = true;
-  calendarEventModal.hidden = false;
-  calendarEventForm.elements.date.value = formatCalendarDate(calendarMonth);
-  calendarEventForm.elements.title.focus();
+if (calendarAddEvent) calendarAddEvent.addEventListener('click', () => {
+  openCalendarEventModalForDate(selectedCalendarDate || formatCalendarDate(new Date()));
 });
-calendarEventClose.addEventListener('click', closeCalendarEvent);
-calendarSummaryClose.addEventListener('click', closeCalendarSummary);
-calendarNotificationClose.addEventListener('click', closeCalendarNotification);
-calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
-calendarNotificationOpen.addEventListener('click', () => {
+if (calendarEventClose) calendarEventClose.addEventListener('click', closeCalendarEvent);
+if (calendarSummaryClose) calendarSummaryClose.addEventListener('click', closeCalendarSummary);
+if (calendarEditEvent) calendarEditEvent.addEventListener('click', () => {
+  const selectedEvent = resolveActiveCalendarEvent();
+  if (!selectedEvent) return;
+  closeCalendarSummary();
+  openCalendarEventModalForDate(selectedEvent.event_date, selectedEvent);
+});
+if (calendarDeleteEvent) calendarDeleteEvent.addEventListener('click', async () => {
+  const selectedEvent = resolveActiveCalendarEvent();
+  if (!selectedEvent) return;
+  const confirmed = window.confirm(`Delete the event "${selectedEvent.title || 'Untitled event'}"?`);
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${currentUser.accessToken}` },
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Unable to delete calendar event.');
+    }
+    calendarEvents = calendarEvents.filter((event) => String(event.id) !== String(selectedEvent.id));
+    closeCalendarSummary();
+    renderCalendar();
+  } catch (error) {
+    window.alert(error.message);
+  }
+});
+if (calendarNotificationClose) calendarNotificationClose.addEventListener('click', closeCalendarNotification);
+if (calendarNotificationDismiss) calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
+if (calendarNotificationOpen) calendarNotificationOpen.addEventListener('click', () => {
   closeCalendarNotification();
   showCalendarPage();
 });
@@ -434,8 +718,9 @@ calendarEventForm.addEventListener('submit', async (event) => {
   const submitButton = calendarEventForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   try {
-    const response = await fetch('/api/calendar-events', {
-      method: 'POST',
+    const isEditing = Boolean(calendarEditingEventId);
+    const response = await fetch(isEditing ? `/api/calendar-events/${calendarEditingEventId}` : '/api/calendar-events', {
+      method: isEditing ? 'PUT' : 'POST',
       headers: { Authorization: `Bearer ${currentUser.accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: formData.get('title'),
@@ -445,10 +730,21 @@ calendarEventForm.addEventListener('submit', async (event) => {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Unable to save calendar event.');
-    calendarEvents.push(result);
+    const normalizedResult = {
+      ...result,
+      event_date: normalizeCalendarDateString(result.event_date),
+    };
+
+    if (isEditing) {
+      calendarEvents = calendarEvents.map((entry) => (String(entry.id) === String(normalizedResult.id) ? normalizedResult : entry));
+    } else {
+      calendarEvents.push(normalizedResult);
+    }
+
+    calendarEditingEventId = null;
     closeCalendarEvent();
     renderCalendar();
-    if (result.event_date === formatCalendarDate(new Date())) showCurrentDateNotification();
+    if (normalizedResult.event_date === formatCalendarDate(new Date())) showCurrentDateNotification();
   } catch (error) {
     calendarError.textContent = error.message;
     calendarError.hidden = false;
@@ -791,42 +1087,45 @@ const updateSoaReminders = () => {
             </div>
           </div>
           <div class="soa-reminder-actions">
-            <button class="soa-reminder-forward-btn" type="button" data-soa-forward-id="${employer.id}" data-soa-stage="${soaInfo.activeStage}">
-              Mark as Forwarded
-            </button>
-            <button class="soa-reminder-action-btn" type="button" data-soa-edit-id="${employer.id}" data-soa-field="${soaInfo.targetField}">
-              Edit &amp; Update Record
+            <button class="soa-reminder-view-btn" type="button" data-soa-view-masterfile-id="${employer.id}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              View in MasterFile &rarr;
             </button>
           </div>
         </div>
       `).join('');
 
-      reminderList.querySelectorAll('[data-soa-forward-id]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const empId = btn.dataset.soaForwardId;
-          const stage = btn.dataset.soaStage;
-          btn.disabled = true;
-          btn.textContent = 'Forwarding...';
-          await markEmployerAsForwarded(empId, stage);
-        });
-      });
-
-      reminderList.querySelectorAll('[data-soa-edit-id]').forEach((button) => {
+      reminderList.querySelectorAll('[data-soa-view-masterfile-id]').forEach((button) => {
         button.addEventListener('click', () => {
-          const empId = button.dataset.soaEditId;
-          const targetField = button.dataset.soaField;
-          const matchingRow = document.querySelector(`tr[data-employer-id="${empId}"]`);
+          const empId = button.dataset.soaViewMasterfileId;
           const modal = document.getElementById('soaReminderModal');
           if (modal) modal.hidden = true;
-          if (matchingRow) {
-            openEmployerEdit(matchingRow).then(() => {
-              if (targetField && employerForm.elements[targetField]) {
-                employerForm.elements[targetField].focus();
-                employerForm.elements[targetField].style.outline = '2px solid #e11d48';
-                setTimeout(() => { employerForm.elements[targetField].style.outline = ''; }, 3000);
-              }
-            });
+          
+          navigateToView('MasterFile');
+          
+          // Clear active filter in MasterFile to ensure the target row is visible
+          const masterFileView = document.querySelector('[data-ao-view="MasterFile"]');
+          if (masterFileView) {
+            const allTab = masterFileView.querySelector('.ao-sheet-tab[data-sheet="ALL"]');
+            if (allTab && !allTab.classList.contains('active')) {
+              masterFileView.querySelectorAll('.ao-sheet-tab').forEach((t) => t.classList.remove('active'));
+              allTab.classList.add('active');
+            }
+            const statusFilter = masterFileView.querySelector('[data-filter-status]');
+            if (statusFilter && statusFilter.value) statusFilter.value = '';
+            const searchInput = masterFileView.querySelector('.ao-table-search input');
+            if (searchInput && searchInput.value) searchInput.value = '';
+            filterAoTable('MasterFile');
           }
+
+          setTimeout(() => {
+            const masterFileRow = document.querySelector(`[data-ao-view="MasterFile"] tr[data-employer-id="${empId}"]`);
+            if (masterFileRow) {
+              masterFileRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              masterFileRow.classList.add('row-highlight-pulse');
+              setTimeout(() => { masterFileRow.classList.remove('row-highlight-pulse'); }, 2500);
+            }
+          }, 150);
         });
       });
     }
@@ -855,11 +1154,13 @@ const filterAoTable = (viewName) => {
   const filters = view?.querySelector('.ao-table-filters');
   if (!filters) return;
 
+  const officerView = getCurrentOfficerCode();
   const query = filters.querySelector('input[type="search"]').value.trim().toLowerCase();
   const selectedDate = filters.querySelector('[data-filter-date]').value;
   const selectedStatus = normalizeStatus(filters.querySelector('[data-filter-status]').value);
   const selectedAddress = (filters.querySelector('[data-filter-address]')?.value || '').trim().toLowerCase();
-  const selectedView = (filters.querySelector('[data-filter-branch], [data-filter-view]')?.value || '').trim();
+  const selectedViewInput = filters.querySelector('[data-filter-branch], [data-filter-view]');
+  const selectedView = officerView ? '' : (selectedViewInput?.value || '').trim();
   const activeSheet = view.querySelector('.ao-sheet-tab.active')?.dataset.sheet || 'ALL';
   const rows = [...view.querySelectorAll('tbody tr[data-employer-id]')];
 
@@ -871,8 +1172,9 @@ const filterAoTable = (viewName) => {
   rows.forEach((row) => {
     const employer = JSON.parse(row.dataset.employer || '{}');
     const payerType = row.dataset.payerType || employer.payer_type || 'Interim Payer';
-    if (payerType === 'Regular Payer') rpCount += 1;
-    else if (payerType === 'Special Payer') spCount += 1;
+    const isNonPaying = payerType === 'Non-Paying' || payerType === 'Non Paying' || payerType === 'Special Payer' || payerType === 'NP' || payerType === 'SP';
+    if (payerType === 'Regular Payer' || payerType === 'RP') rpCount += 1;
+    else if (isNonPaying) spCount += 1;
     else ipCount += 1;
 
     const soaInfo = getEmployerSoaInfo(employer);
@@ -898,9 +1200,9 @@ const filterAoTable = (viewName) => {
     const matchesView = !selectedView || rowAssignedView === selectedView;
 
     let matchesSheet = true;
-    if (activeSheet === 'RP') matchesSheet = payerType === 'Regular Payer';
-    else if (activeSheet === 'IP') matchesSheet = payerType === 'Interim Payer';
-    else if (activeSheet === 'SP') matchesSheet = payerType === 'Special Payer';
+    if (activeSheet === 'RP') matchesSheet = payerType === 'Regular Payer' || payerType === 'RP';
+    else if (activeSheet === 'IP') matchesSheet = payerType === 'Interim Payer' || payerType === 'IP';
+    else if (activeSheet === 'NP' || activeSheet === 'SP') matchesSheet = isNonPaying;
     else if (activeSheet === 'DUE') matchesSheet = soaInfo.isDue;
 
     const isVisible = matchesQuery && matchesDate && matchesStatus && matchesAddress && matchesView && matchesSheet;
@@ -911,11 +1213,13 @@ const filterAoTable = (viewName) => {
   const countRP = view.querySelector('[data-sheet-count="RP"]');
   const countIP = view.querySelector('[data-sheet-count="IP"]');
   const countSP = view.querySelector('[data-sheet-count="SP"]');
+  const countNP = view.querySelector('[data-sheet-count="NP"]');
   const countDUE = view.querySelector('[data-sheet-count="DUE"]');
   if (countAll) countAll.textContent = rows.length;
   if (countRP) countRP.textContent = rpCount;
   if (countIP) countIP.textContent = ipCount;
   if (countSP) countSP.textContent = spCount;
+  if (countNP) countNP.textContent = spCount;
   if (countDUE) countDUE.textContent = dueCount;
 
   // Urgent Action Notification Banner in this AO view
@@ -930,16 +1234,18 @@ const filterAoTable = (viewName) => {
 };
 
 const getDashboardEmployers = (viewName) => {
+  const officerView = getCurrentOfficerCode();
   const selector = (!viewName || viewName === 'MasterFile')
     ? '.ao-view[data-ao-view="MasterFile"] .ao-table tbody tr[data-employer-id]'
     : `.ao-view[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`;
+
   return [...document.querySelectorAll(selector)].map((row) => {
     try {
       return JSON.parse(row.dataset.employer || '{}');
     } catch {
       return {};
     }
-  }).filter((emp) => emp.id);
+  }).filter((emp) => emp.id && (!officerView || String(emp.assigned_view || '').trim() === String(officerView)));
 };
 
 const getDashboardMetrics = (employersOrRows, customTarget = null) => {
@@ -962,7 +1268,7 @@ const getDashboardMetrics = (employersOrRows, customTarget = null) => {
   }
 
   const total = employers.length;
-  const settled = employers.filter((e) => (e.status || '').toLowerCase().includes('settled')).length;
+  const settled = employers.filter((e) => getEmployerSoaInfo(e).stage === 'Settled' || (e.status || '').toLowerCase() === 'settled').length;
   const unsettled = total - settled;
   const soa1Count = employers.filter((e) => (e.status || '').toLowerCase().includes('1st soa')).length;
   const soa2Count = employers.filter((e) => (e.status || '').toLowerCase().includes('2nd soa')).length;
@@ -974,7 +1280,7 @@ const getDashboardMetrics = (employersOrRows, customTarget = null) => {
     if (getEmployerSoaInfo(emp).isDue) dueCount += 1;
   });
 
-  const pendingSoa = employers.filter((e) => !e.soa_date && !(e.status || '').toLowerCase().includes('settled')).length;
+  const pendingSoa = employers.filter((e) => !e.soa_date && getEmployerSoaInfo(e).stage !== 'Settled' && (e.status || '').toLowerCase() !== 'settled').length;
 
   const missingAmount = employers.filter((e) => {
     const isRegular = (e.payer_type || '').toLowerCase().includes('regular') || (e.payer_type || '').includes('RP');
@@ -993,13 +1299,16 @@ const getDashboardMetrics = (employersOrRows, customTarget = null) => {
   const duplicateCount = duplicatesSet.size;
 
   const rp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('regular') || (e.payer_type || '').includes('RP')).length;
-  const sp = employers.filter((e) => (e.payer_type || '').toLowerCase().includes('special') || (e.payer_type || '').includes('SP')).length;
+  const sp = employers.filter((e) => {
+    const pt = (e.payer_type || '').toLowerCase();
+    return pt.includes('non') || pt.includes('special') || (e.payer_type || '').includes('NP') || (e.payer_type || '').includes('SP');
+  }).length;
   const ip = total - rp - sp;
   const ipSp = ip + sp;
 
   const billed = employers.reduce((sum, e) => sum + Number(e.soa3_total || e.soa2_total || e.total_amount || 0), 0);
   const paid = employers.reduce((sum, e) => sum + Number(e.payment_total || 0), 0);
-  const settledAmount = employers.filter((e) => (e.status || '').toLowerCase().includes('settled'))
+  const settledAmount = employers.filter((e) => getEmployerSoaInfo(e).stage === 'Settled' || (e.status || '').toLowerCase() === 'settled')
     .reduce((sum, e) => sum + Number(e.soa3_total || e.soa2_total || e.total_amount || 0), 0);
   const unsettledAmount = Math.max(0, billed - paid);
 
@@ -1035,17 +1344,24 @@ const getDashboardMetrics = (employersOrRows, customTarget = null) => {
   };
 };
 
+let allowAdminEmployerForm = false;
+
 const navigateToView = (viewName) => {
+  if (viewName === 'EmployerForm' && isAdminSideRole(currentUser?.role) && !allowAdminEmployerForm) {
+    viewName = 'DASHBOARD';
+  }
   const isDashboard = viewName === 'DASHBOARD';
   const isEmployerForm = viewName === 'EmployerForm';
   calendarModal.hidden = true;
   orgChartModal.hidden = true;
+  const selectedNavButton = [...navButtons].find((button) => {
+    const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
+    return buttonView === viewName;
+  });
+  clearActiveNavButtons(selectedNavButton);
+  if (selectedNavButton) selectedNavButton.classList.add('active');
   calendarOpenButton.classList.remove('active');
   pageWrapper.classList.toggle('dashboard-active', isDashboard);
-  navButtons.forEach((button) => {
-    const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
-    button.classList.toggle('active', buttonView === viewName);
-  });
   dashboardView.hidden = !isDashboard;
   employerFormView.hidden = !isEmployerForm;
   aoViews.forEach((view) => {
@@ -1061,6 +1377,7 @@ const navigateToView = (viewName) => {
 };
 
 const refreshMainDashboard = () => {
+  syncOfficerDashboardPanels();
   const masterEmployers = getDashboardEmployers('MasterFile');
   const dashboardMetrics = getDashboardMetrics(masterEmployers);
 
@@ -1225,7 +1542,7 @@ const updatePayerTypeVisibility = () => {
   }
 
   if (!editingEmployerId) {
-    // Registration Mode: Auto-update status lock based on Payer Type (RP -> Settled, IP/SP -> 1st SOA Served)
+    // Registration Mode: Auto-update status lock based on Payer Type (RP -> Settled, IP/NP -> 1st SOA Served)
     configureStatusDropdown(null);
   } else {
     // Edit Mode: Enable full dropdown, but if changed to Regular Payer, suggest Settled
@@ -1288,10 +1605,26 @@ const employerModal = document.querySelector('.employer-modal');
 const employerModalSubtitle = document.querySelector('.modal-header-subtitle');
 
 const openEmployerModal = (viewName) => {
+  const currentNav = mainNav.dataset.activeView || 'DASHBOARD';
+  employerFormReturnView = currentNav === 'EmployerForm' ? 'DASHBOARD' : currentNav;
+  if (isAdminSideRole(currentUser?.role)) {
+    navigateToView('DASHBOARD');
+    return;
+  }
   editingEmployerId = null;
   employerForm.reset();
   setEmployerFormTab('tab-basic');
   configureStatusDropdown(null);
+
+  const basicInputs = document.querySelectorAll('#tab-basic input:not([type="hidden"]), #tab-basic select');
+  basicInputs.forEach((el) => {
+    if (el.tagName === 'SELECT') el.disabled = false;
+    else el.readOnly = false;
+    el.classList.remove('admin-locked-input');
+  });
+  const adminBanner = document.getElementById('adminRestrictedBanner');
+  if (adminBanner) adminBanner.hidden = true;
+
   if (employerForm.elements.payerType) employerForm.elements.payerType.value = 'Interim Payer';
   updatePayerTypeVisibility();
   updatePostalCode();
@@ -1310,8 +1643,13 @@ const openEmployerModal = (viewName) => {
 };
 
 const openEmployerEdit = async (row) => {
+  const currentNav = mainNav.dataset.activeView || (isAdminSideRole(currentUser?.role) ? 'MasterFile' : 'DASHBOARD');
+  employerFormReturnView = currentNav === 'EmployerForm'
+    ? (isAdminSideRole(currentUser?.role) ? 'MasterFile' : 'DASHBOARD')
+    : currentNav;
   const employer = JSON.parse(row.dataset.employer || '{}');
   if (!employer.id) return;
+  allowAdminEmployerForm = isAdminSideRole(currentUser?.role);
   editingEmployerId = employer.id;
   employerForm.reset();
   setEmployerFormTab('tab-basic');
@@ -1381,22 +1719,64 @@ const openEmployerEdit = async (row) => {
   if (employer.address_barangay) barangaySelect.value = employer.address_barangay;
   postalCodeInput.value = employer.address_postal_code || postalCodeInput.value;
   postalCodeInput.readOnly = Boolean(postalCodeInput.value);
-  modalTitle.textContent = "Edit Employer Record & Escalation";
-  if (employerModalSubtitle) employerModalSubtitle.textContent = "Update account details, assess next SOA stages, and record settlements";
+
+  const isRestrictedAdmin = isAdminSideRole(currentUser?.role);
+  const basicInputs = document.querySelectorAll('#tab-basic input:not([type="hidden"]), #tab-basic select');
+  basicInputs.forEach((el) => {
+    if (isRestrictedAdmin) {
+      if (el.tagName === 'SELECT') {
+        el.disabled = true;
+      } else {
+        el.readOnly = true;
+      }
+      el.classList.add('admin-locked-input');
+    } else {
+      if (el.tagName === 'SELECT') {
+        el.disabled = false;
+      } else {
+        el.readOnly = false;
+      }
+      el.classList.remove('admin-locked-input');
+    }
+  });
+
+  const adminBanner = document.getElementById('adminRestrictedBanner');
+  if (adminBanner) adminBanner.hidden = !isRestrictedAdmin;
+
+  if (isRestrictedAdmin) {
+    modalTitle.textContent = "Edit Employer Billing Assessments & Payments";
+    if (employerModalSubtitle) employerModalSubtitle.textContent = "Admin Mode: Modify billing statements, delinquent collectibles, and payment records";
+    setEmployerFormTab('tab-soa1');
+  } else {
+    modalTitle.textContent = "Edit Employer Record & Escalation";
+    if (employerModalSubtitle) employerModalSubtitle.textContent = "Update account details, assess next SOA stages, and record settlements";
+    setEmployerFormTab('tab-basic');
+  }
+
   employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
   employerForm.classList.add('is-editing');
   if (employerModal) employerModal.classList.add('is-editing');
   updateEmployerTotals();
   navigateToView('EmployerForm');
-  employerForm.elements.employerNumber.focus();
+  if (isRestrictedAdmin) {
+    employerForm.elements.principal?.focus();
+  } else {
+    employerForm.elements.employerNumber?.focus();
+  }
+  allowAdminEmployerForm = false;
 };
 
 const closeEmployerModal = () => {
-  navigateToView('DASHBOARD');
+  allowAdminEmployerForm = false;
+  const targetView = (employerFormReturnView && employerFormReturnView !== 'EmployerForm')
+    ? employerFormReturnView
+    : (isAdminSideRole(currentUser?.role) ? 'MasterFile' : 'DASHBOARD');
+  navigateToView(targetView);
 };
 
 const closeEmployerSuccessModal = () => {
   employerSuccessModal.hidden = true;
+  closeEmployerModal();
 };
 
 const syncOfficerFormLayout = () => {
@@ -1572,12 +1952,12 @@ const openOrgChart = () => {
   employerFormView.hidden = true;
   aoViews.forEach((view) => { view.hidden = true; });
   document.querySelector('.ao-views').classList.remove('is-active');
+  const orgChartButton = document.querySelector('.org-chart-btn');
+  clearActiveNavButtons(orgChartButton);
   orgChartModal.hidden = false;
   loadOrgChartUsers();
-  document.querySelector('.dashboard-nav-item .nav-btn').classList.remove('active');
-  document.querySelector('.org-chart-btn').classList.add('active');
-  calendarOpenButton.classList.remove('active');
-  orgChartClose.focus();
+  orgChartButton.classList.add('active');
+  if (orgChartClose) orgChartClose.focus();
 };
 
 const closeOrgChart = () => {
@@ -1716,6 +2096,10 @@ navButtons.forEach((button) => {
     const viewName = selectedView === 'MASTERFILE' ? 'MasterFile' : selectedView === 'DATA FORM' ? 'EmployerForm' : selectedView;
     if (viewName !== 'DASHBOARD' && !viewName.startsWith('AO') && viewName !== 'MasterFile' && viewName !== 'EmployerForm') return;
     if (viewName === 'EmployerForm') {
+      if (isAdminSideRole(currentUser?.role)) {
+        navigateToView('DASHBOARD');
+        return;
+      }
       openEmployerModal(getOfficerView(currentUser?.role) || 'AO1');
       return;
     }
@@ -1729,6 +2113,10 @@ navButtons.forEach((button) => {
 document.querySelectorAll('.add-record-btn').forEach((button) => {
   button.addEventListener('click', (event) => {
     event.stopPropagation();
+    if (isAdminSideRole(currentUser?.role)) {
+      navigateToView('DASHBOARD');
+      return;
+    }
     openEmployerModal(button.dataset.formView);
   });
 });
@@ -1740,15 +2128,36 @@ document.querySelector('.org-chart-btn').addEventListener('click', (event) => {
 
 syncOfficerFormLayout();
 
-document.querySelector('.modal-close-btn').addEventListener('click', closeEmployerModal);
+const employerFormCloseBtn = document.getElementById('employerFormCloseBtn');
+if (employerFormCloseBtn) {
+  employerFormCloseBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    closeEmployerModal();
+  });
+}
+document.querySelectorAll('#employerFormView .modal-close-btn').forEach((btn) => {
+  btn.addEventListener('click', (event) => {
+    event.preventDefault();
+    closeEmployerModal();
+  });
+});
+
+document.addEventListener('click', (event) => {
+  const closeBtn = event.target.closest('#employerFormCloseBtn, #employerFormView .modal-close-btn');
+  if (closeBtn) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeEmployerModal();
+  }
+});
 employerSuccessClose.addEventListener('click', closeEmployerSuccessModal);
 employerSuccessOk.addEventListener('click', closeEmployerSuccessModal);
 employerSuccessModal.addEventListener('click', (event) => {
   if (event.target === employerSuccessModal) closeEmployerSuccessModal();
 });
 
-tableDashboardClose.addEventListener('click', closeTableDashboard);
-orgChartClose.addEventListener('click', closeOrgChart);
+if (tableDashboardClose) tableDashboardClose.addEventListener('click', closeTableDashboard);
+if (orgChartClose) orgChartClose.addEventListener('click', closeOrgChart);
 
 tableDashboardModal.addEventListener('click', (event) => {
   if (event.target === tableDashboardModal) closeTableDashboard();
@@ -1774,8 +2183,9 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   }
 
   const payerType = (employer?.payer_type || rowValues[2] || 'Interim Payer').trim();
-  const badgeClass = payerType === 'Regular Payer' ? 'payer-badge-rp' : payerType === 'Special Payer' ? 'payer-badge-sp' : 'payer-badge-ip';
-  const badgeCode = payerType === 'Regular Payer' ? 'RP' : payerType === 'Special Payer' ? 'SP' : 'IP';
+  const isNonPayingPayer = payerType === 'Non-Paying' || payerType === 'Non Paying' || payerType === 'Special Payer' || payerType === 'NP' || payerType === 'SP';
+  const badgeClass = (payerType === 'Regular Payer' || payerType === 'RP') ? 'payer-badge-rp' : isNonPayingPayer ? 'payer-badge-np' : 'payer-badge-ip';
+  const badgeCode = (payerType === 'Regular Payer' || payerType === 'RP') ? 'RP' : isNonPayingPayer ? 'NP' : 'IP';
 
   const empData = employer || {
     id: employerId,
@@ -1802,7 +2212,8 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
       cell.textContent = formatSssEmployerNumber(value);
       cell.className = 'td-employer-number';
     } else if (cellIndex === 2) {
-      cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerType}</span>`;
+      const payerDisplayName = getPayerTypeDisplayName(payerType);
+      cell.innerHTML = `<span class="payer-badge ${badgeClass}" title="${payerType}">[${badgeCode}] ${payerDisplayName}</span>`;
     } else if (cellIndex === 29) {
       cell.className = 'td-status';
       if (soaInfo.stage === 'Settled') {
@@ -1842,18 +2253,58 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   if (employer) targetRow.dataset.employer = JSON.stringify(employer);
   targetRow.classList.toggle('is-due-date', soaInfo.isDue);
 
-  // Per-row action cell: Edit button
+  // Per-row action cell: Edit only for Admin/MasterFile; Edit & Delete (Settled-only) for AO views
   let actionCell = targetRow.querySelector('.td-row-actions');
   if (!actionCell) {
     actionCell = document.createElement('td');
     actionCell.className = 'td-row-actions';
     targetRow.appendChild(actionCell);
   }
-  actionCell.innerHTML = `<button class="row-edit-btn" type="button" title="Edit this employer">Edit</button>`;
-  actionCell.querySelector('.row-edit-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openEmployerEdit(targetRow);
-  });
+
+  const isAdmin = isAdminSideRole(currentUser?.role);
+  const isSettled = soaInfo.stage === 'Settled' || String(empData.status || '').trim().toLowerCase() === 'settled';
+
+  if (isAdmin || viewName === 'MasterFile') {
+    actionCell.innerHTML = `<button class="row-edit-btn" type="button" title="Edit this employer">Edit</button>`;
+    const editBtn = actionCell.querySelector('.row-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEmployerEdit(targetRow);
+      });
+    }
+  } else if (isSettled) {
+    actionCell.innerHTML = `
+      <div class="row-actions-group">
+        <button class="row-edit-btn" type="button" title="Edit this employer">Edit</button>
+        <button class="row-delete-btn" type="button" data-employer-id="${employerId}" title="Delete this settled employer record">Delete</button>
+      </div>
+    `;
+    const editBtn = actionCell.querySelector('.row-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEmployerEdit(targetRow);
+      });
+    }
+    const deleteBtn = actionCell.querySelector('.row-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const empName = employer?.employer_name || rowValues[1] || 'this employer';
+        openDeleteConfirmationForSingleEmployer(employerId, empName, viewName);
+      });
+    }
+  } else {
+    actionCell.innerHTML = `<button class="row-edit-btn" type="button" title="Edit this employer">Edit</button>`;
+    const editBtn = actionCell.querySelector('.row-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEmployerEdit(targetRow);
+      });
+    }
+  }
 
   filterAoTable(viewName);
 
@@ -1864,10 +2315,16 @@ const setTableEditMode = (viewName, isEditing) => {
   const view = document.querySelector(`[data-ao-view="${viewName}"]`);
   if (!view) return;
 
+  const isAdmin = isAdminSideRole(currentUser?.role);
   view.classList.toggle('is-editing', isEditing);
-  view.querySelector('.table-edit-btn').textContent = isEditing ? 'Cancel edit' : 'Edit mode';
-  view.querySelector('.table-edit-data-btn').hidden = !isEditing;
-  view.querySelector('.table-delete-btn').hidden = !isEditing;
+  const editBtn = view.querySelector('.table-edit-btn');
+  if (editBtn) editBtn.textContent = isEditing ? 'Cancel edit' : 'Edit mode';
+  const editDataBtn = view.querySelector('.table-edit-data-btn');
+  if (editDataBtn) editDataBtn.hidden = !isEditing;
+  const deleteBtn = view.querySelector('.table-delete-btn');
+  if (deleteBtn) {
+    deleteBtn.hidden = !isEditing || isAdmin || viewName === 'MasterFile';
+  }
   view.querySelectorAll('tbody tr').forEach((row) => row.classList.remove('is-selected'));
 };
 
@@ -1893,9 +2350,32 @@ const openDeleteConfirmation = (viewName) => {
   deleteConfirmApprove.focus();
 };
 
+const openDeleteConfirmationForSingleEmployer = (employerId, employerName, viewName = 'MasterFile') => {
+  pendingDelete = {
+    viewName,
+    employerIds: [String(employerId)],
+  };
+  const titleEl = document.getElementById('deleteConfirmTitle');
+  const descEl = deleteConfirmModal.querySelector('p:not(.delete-confirm-error)');
+  if (titleEl) titleEl.textContent = 'Delete Employer Record?';
+  if (descEl) descEl.textContent = `Are you sure you want to delete employer "${employerName}"? This record will be permanently removed.`;
+  deleteConfirmError.hidden = true;
+  deleteConfirmApprove.disabled = false;
+  deleteConfirmModal.hidden = false;
+  deleteConfirmApprove.focus();
+};
+
 const closeDeleteConfirmation = () => {
   pendingDelete = null;
   deleteConfirmModal.hidden = true;
+  deleteConfirmError.hidden = true;
+  deleteConfirmError.textContent = '';
+  deleteConfirmApprove.disabled = false;
+  deleteConfirmApprove.textContent = "Yes, I'm sure";
+  const titleEl = document.getElementById('deleteConfirmTitle');
+  const descEl = deleteConfirmModal.querySelector('p:not(.delete-confirm-error)');
+  if (titleEl) titleEl.textContent = 'Delete selected data?';
+  if (descEl) descEl.textContent = 'Are you sure you want to delete the selected data?';
 };
 
 const deleteSelectedRows = async () => {
@@ -1903,27 +2383,47 @@ const deleteSelectedRows = async () => {
 
   const { employerIds, viewName } = pendingDelete;
   deleteConfirmApprove.disabled = true;
-  const response = await fetch('/api/employers', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids: employerIds }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    deleteConfirmError.textContent = error?.error || `Unable to delete employers (HTTP ${response.status}).`;
-    deleteConfirmError.hidden = false;
-    deleteConfirmApprove.disabled = false;
-    return;
-  }
+  deleteConfirmApprove.textContent = 'Deleting...';
+  deleteConfirmError.hidden = true;
+  deleteConfirmError.textContent = '';
 
-  const deletedIds = new Set(employerIds);
-  document.querySelectorAll(`.ao-table tbody tr[data-employer-id]`).forEach((row) => {
-    if (deletedIds.has(row.dataset.employerId)) row.remove();
-  });
-  setTableEditMode(viewName, false);
-  refreshMainDashboard();
-  loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
-  closeDeleteConfirmation();
+  try {
+    const response = await fetch('/api/employers', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${currentUser?.accessToken || ''}`,
+      },
+      body: JSON.stringify({ ids: employerIds }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      deleteConfirmError.textContent = error?.error || `Unable to delete employer(s) (HTTP ${response.status}).`;
+      deleteConfirmError.hidden = false;
+      return;
+    }
+
+    const deletedIds = new Set(employerIds.map(String));
+    document.querySelectorAll('.ao-table tbody tr[data-employer-id]').forEach((row) => {
+      if (deletedIds.has(String(row.dataset.employerId))) row.remove();
+    });
+
+    setTableEditMode(viewName, false);
+    refreshMainDashboard();
+    loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
+    updateSoaReminders();
+    closeDeleteConfirmation();
+  } catch (error) {
+    console.error('Delete employer failed:', error);
+    deleteConfirmError.textContent = error?.message || 'Network error: Unable to connect to server to delete record.';
+    deleteConfirmError.hidden = false;
+  } finally {
+    if (!deleteConfirmModal.hidden) {
+      deleteConfirmApprove.disabled = false;
+      deleteConfirmApprove.textContent = "Yes, I'm sure";
+    }
+  }
 };
 
 const loadEmployers = async () => {
@@ -1935,10 +2435,18 @@ const loadEmployers = async () => {
   if (!response.ok) throw new Error('Unable to load employers.');
 
   const employers = await response.json();
+  const officerView = getCurrentOfficerCode();
   employers.forEach((employer) => {
+    if (officerView) {
+      const employerMatchesOfficer = String(employer.assigned_view || '').trim() === String(officerView);
+      if (!employerMatchesOfficer) return;
+    }
+
     addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id, employer.assigned_view, employer);
     addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view, employer);
   });
+  synchronizeOfficerMasterfileView();
+  syncOfficerDashboardPanels();
   updateSoaReminders();
 };
 
@@ -2273,24 +2781,34 @@ employerForm.addEventListener('submit', async (event) => {
   const interest = isRegular ? 0 : parseAmount(formData.get('interest'));
   const totalAmount = Number((principal + penalty + interest).toFixed(2));
 
+  const employerNumber = formData.get('employerNumber') || employerForm.elements.employerNumber?.value;
+  const employerName = formData.get('employerName') || employerForm.elements.employerName?.value;
+  const addressLine1 = formData.get('addressLine1') || employerForm.elements.addressLine1?.value || '';
+  const addressCountry = formData.get('addressCountry') || employerForm.elements.addressCountry?.value || '';
+  const addressState = formData.get('addressState') || employerForm.elements.addressState?.value || '';
+  const addressCity = formData.get('addressCity') || employerForm.elements.addressCity?.value || '';
+  const addressBarangay = formData.get('addressBarangay') || employerForm.elements.addressBarangay?.value || '';
+  const addressPostalCode = formData.get('addressPostalCode') || employerForm.elements.addressPostalCode?.value || '';
+  const employeeCount = Number(formData.get('employeeCount') || employerForm.elements.employeeCount?.value || 0);
+
   const employer = {
-    assigned_view: formData.get('assignedView'),
-    employer_number: formData.get('employerNumber'),
-    employer_name: formData.get('employerName'),
+    assigned_view: formData.get('assignedView') || employerForm.elements.assignedView?.value,
+    employer_number: employerNumber,
+    employer_name: employerName,
     payer_type: payerType,
     address: [
-      formData.get('addressLine1'),
-      formData.get('addressCity'),
-      formData.get('addressState'),
-      formData.get('addressCountry'),
+      addressLine1,
+      addressCity,
+      addressState,
+      addressCountry,
     ].map((value) => String(value || '').trim()).filter(Boolean).join(', '),
-    address_line1: formData.get('addressLine1') || '',
-    address_country: formData.get('addressCountry') || '',
-    address_state: formData.get('addressState') || '',
-    address_city: formData.get('addressCity') || '',
-    address_barangay: formData.get('addressBarangay') || '',
-    address_postal_code: formData.get('addressPostalCode') || '',
-    employee_count: Number(formData.get('employeeCount') || 0),
+    address_line1: addressLine1,
+    address_country: addressCountry,
+    address_state: addressState,
+    address_city: addressCity,
+    address_barangay: addressBarangay,
+    address_postal_code: addressPostalCode,
+    employee_count: employeeCount,
     principal,
     penalty,
     interest,
@@ -2521,6 +3039,9 @@ document.querySelectorAll('.ao-table-filters input, .ao-table-filters select').f
 deleteConfirmApprove.addEventListener('click', deleteSelectedRows);
 deleteConfirmCancel.addEventListener('click', closeDeleteConfirmation);
 deleteConfirmClose.addEventListener('click', closeDeleteConfirmation);
+deleteConfirmModal.addEventListener('click', (event) => {
+  if (event.target === deleteConfirmModal) closeDeleteConfirmation();
+});
 
 document.addEventListener('click', (event) => {
   const row = event.target.closest('.ao-table tbody tr');
@@ -2855,6 +3376,263 @@ groupedBarChart = new Chart(document.getElementById('groupedBarChart'), {
 });
 
 refreshCharts();
+
+// Initialize AO personal performance charts
+const initializeAoPersonalCharts = (aoViewName) => {
+  const aoEmployers = [...document.querySelectorAll(`[data-ao-view="${aoViewName}"] tbody tr[data-employer-id]`)].map((row) => {
+    try {
+      return JSON.parse(row.dataset.employer || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  // Collect stage and payer type data
+  const stageCounts = { '1st SOA': 0, '2nd SOA': 0, '3rd SOA': 0, 'Legal': 0, 'Settled': 0 };
+  const payerCounts = { 'RP': 0, 'IP': 0, 'NP': 0 };
+  const encodingByMonth = {};
+
+  aoEmployers.forEach((emp) => {
+    // Count by stage
+    const status = (emp.status || '').toLowerCase();
+    if (status.includes('1st soa')) stageCounts['1st SOA']++;
+    else if (status.includes('2nd soa')) stageCounts['2nd SOA']++;
+    else if (status.includes('3rd soa')) stageCounts['3rd SOA']++;
+    else if (status.includes('legal')) stageCounts['Legal']++;
+    else if (status === 'settled' || status.includes('settled') && !status.includes('unsettled')) stageCounts['Settled']++;
+
+    // Count by payer type
+    const payerType = emp.payer_type || 'IP';
+    const isNonPayingType = payerType === 'Non-Paying' || payerType === 'Non Paying' || payerType === 'Special Payer' || payerType === 'NP' || payerType === 'SP';
+    if (payerType === 'Regular Payer' || payerType === 'RP') payerCounts['RP']++;
+    else if (payerType === 'Interim Payer' || payerType === 'IP') payerCounts['IP']++;
+    else if (isNonPayingType) payerCounts['NP']++;
+
+    // Count by encoding month
+    if (emp.created_at) {
+      const date = new Date(emp.created_at);
+      const monthKey = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+      encodingByMonth[monthKey] = (encodingByMonth[monthKey] || 0) + 1;
+    }
+  });
+
+  // Initialize Stage Chart
+  if (document.getElementById('aoStageChart')) {
+    if (aoStageChart) aoStageChart.destroy();
+    aoStageChart = new Chart(document.getElementById('aoStageChart'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(stageCounts),
+        datasets: [{
+          label: 'Accounts',
+          data: Object.values(stageCounts),
+          backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444', '#dc2626', '#10b981'],
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        ...chartDefaults,
+        indexAxis: 'y',
+        scales: {
+          x: { beginAtZero: true, ticks: { font: { size: 9 } } },
+          y: { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  }
+
+  // Initialize Payer Type Chart
+  if (document.getElementById('aoPayerChart')) {
+    if (aoPayerChart) aoPayerChart.destroy();
+    aoPayerChart = new Chart(document.getElementById('aoPayerChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['RP - Regularly Paying', 'IP - Intermittently Paying', 'NP - Non-Paying'],
+        datasets: [{
+          data: [payerCounts['RP'], payerCounts['IP'], payerCounts['NP']],
+          backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+          borderColor: '#ffffff',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        ...chartDefaults,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        },
+      },
+    });
+  }
+
+  // Initialize Encoding Activity Chart
+  if (document.getElementById('aoEncodingChart')) {
+    if (aoEncodingChart) aoEncodingChart.destroy();
+    const months = Object.keys(encodingByMonth).slice(-12);
+    const values = months.map((m) => encodingByMonth[m]);
+    aoEncodingChart = new Chart(document.getElementById('aoEncodingChart'), {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Employers Encoded',
+          data: values,
+          backgroundColor: '#3b82f6',
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        ...chartDefaults,
+        scales: {
+          y: { beginAtZero: true, ticks: { font: { size: 9 } } },
+          x: { ticks: { font: { size: 8 }, maxRotation: 45 } },
+        },
+      },
+    });
+  }
+};
+
+// Populate AO action items
+const populateAoActionItems = (aoViewName) => {
+  const container = document.getElementById('aoActionItemsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const aoEmployers = [...document.querySelectorAll(`[data-ao-view="${aoViewName}"] tbody tr[data-employer-id]`)].map((row) => {
+    try {
+      return JSON.parse(row.dataset.employer || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  let soa1Count = 0, soa2Count = 0, soa3Count = 0, legalCount = 0, settledCount = 0, dueCount = 0;
+
+  aoEmployers.forEach((emp) => {
+    const status = (emp.status || '').toLowerCase();
+    const soaInfo = getEmployerSoaInfo(emp);
+    if (soaInfo.isDue) dueCount++;
+    if (status.includes('1st soa')) soa1Count++;
+    else if (status.includes('2nd soa')) soa2Count++;
+    else if (status.includes('3rd soa')) soa3Count++;
+    else if (status.includes('legal')) legalCount++;
+    else if (status.includes('settled')) settledCount++;
+  });
+
+  const actionItems = [];
+
+  if (dueCount > 0) {
+    actionItems.push({
+      cardType: 'card-danger',
+      badgeClass: 'badge-warning',
+      badge: 'Immediate Action',
+      icon: '🔔',
+      headline: `${dueCount} Overdue 15-Day Account${dueCount === 1 ? '' : 's'}`,
+      subtext: '15-day compliance cycle lapsed. Review & escalate in MasterFile.',
+      onClick: () => {
+        if (soaReminderModal) soaReminderModal.hidden = false;
+        updateSoaReminders();
+      },
+    });
+  }
+
+  if (soa1Count > 0) {
+    actionItems.push({
+      cardType: 'card-info',
+      badgeClass: 'badge-info',
+      badge: 'Active 1st SOA',
+      icon: '📋',
+      headline: `${soa1Count} Initial Assessment${soa1Count === 1 ? '' : 's'}`,
+      subtext: 'Awaiting 15-day compliance verification or voluntary settlement.',
+      onClick: () => {
+        navigateToView(aoViewName);
+        const filter = document.querySelector(`[data-ao-view="${aoViewName}"] [data-filter-status]`);
+        if (filter) { filter.value = '1st SOA Served'; filterAoTable(aoViewName); }
+      },
+    });
+  }
+
+  if (soa2Count + soa3Count > 0) {
+    actionItems.push({
+      cardType: 'card-alert',
+      badgeClass: 'badge-warning',
+      badge: 'Demand Escalation',
+      icon: '⚠️',
+      headline: `${soa2Count + soa3Count} Escalated Notice${soa2Count + soa3Count === 1 ? '' : 's'}`,
+      subtext: `${soa2Count} on 2nd SOA & ${soa3Count} on 3rd SOA final demand stage.`,
+      onClick: () => {
+        navigateToView(aoViewName);
+        const filter = document.querySelector(`[data-ao-view="${aoViewName}"] [data-filter-status]`);
+        if (filter) { filter.value = soa2Count > 0 ? '2nd SOA Served' : '3rd SOA Served'; filterAoTable(aoViewName); }
+      },
+    });
+  }
+
+  if (legalCount > 0) {
+    actionItems.push({
+      cardType: 'card-danger',
+      badgeClass: 'badge-warning',
+      badge: 'Legal Endorsement',
+      icon: '⚖️',
+      headline: `${legalCount} Referred to Legal`,
+      subtext: 'Active court litigation, lawyer handling & docket follow-ups.',
+      onClick: () => {
+        navigateToView(aoViewName);
+        const filter = document.querySelector(`[data-ao-view="${aoViewName}"] [data-filter-status]`);
+        if (filter) { filter.value = 'Referred to Legal'; filterAoTable(aoViewName); }
+      },
+    });
+  }
+
+  if (settledCount > 0) {
+    actionItems.push({
+      cardType: 'card-success',
+      badgeClass: 'badge-success',
+      badge: 'Settled',
+      icon: '✓',
+      headline: `${settledCount} Fully Settled Record${settledCount === 1 ? '' : 's'}`,
+      subtext: 'Delinquency resolved with 100% payment realization.',
+      onClick: () => {
+        navigateToView(aoViewName);
+        const filter = document.querySelector(`[data-ao-view="${aoViewName}"] [data-filter-status]`);
+        if (filter) { filter.value = 'Settled'; filterAoTable(aoViewName); }
+      },
+    });
+  }
+
+  if (actionItems.length === 0) {
+    const noItems = document.createElement('div');
+    noItems.style.cssText = 'grid-column: 1 / -1; padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;';
+    noItems.innerHTML = '<p style="margin: 0; font-weight: 600; color: #059669;">✓ All accounts in your jurisdiction are compliant and up to date.</p>';
+    container.appendChild(noItems);
+    return;
+  }
+
+  actionItems.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = `insight-card ${item.cardType || ''}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('title', 'Click to filter these accounts');
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+        <span class="insight-badge ${item.badgeClass}">${item.badge}</span>
+        <span style="font-size: 15px;">${item.icon}</span>
+      </div>
+      <p class="insight-text" style="font-size: 12px; font-weight: 700; color: #0f294a; margin: 0 0 2px;">${item.headline}</p>
+      <p class="insight-text" style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.35;">${item.subtext}</p>
+    `;
+    if (item.onClick) {
+      card.addEventListener('click', item.onClick);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          item.onClick();
+        }
+      });
+    }
+    container.appendChild(card);
+  });
+};
 
 if (loginForm) {
   loginForm.addEventListener('submit', async (event) => {

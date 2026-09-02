@@ -23,6 +23,23 @@ const getSqliteDb = () => {
       fs.mkdirSync(dbDir, { recursive: true });
     }
     sqliteDb = new sqlite3.Database(dbPath);
+    sqliteDb.serialize(() => {
+      sqliteDb.run(`CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        username TEXT NOT NULL UNIQUE,
+        full_name TEXT,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL,
+        avatar_url TEXT,
+        assigned_places TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )`);
+      sqliteDb.run('ALTER TABLE users ADD COLUMN avatar_url TEXT', () => {});
+      sqliteDb.run('ALTER TABLE users ADD COLUMN assigned_places TEXT', () => {});
+    });
   }
   return sqliteDb;
 };
@@ -32,7 +49,9 @@ if (isPg) {
   pool = new Pool({
     connectionString: databaseUrl,
     ssl: isLocalhost ? false : { rejectUnauthorized: false },
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 3000,
+    statement_timeout: 3000,
+    query_timeout: 3000,
   });
 } else {
   getSqliteDb();
@@ -44,32 +63,36 @@ const getIsPg = () => isPg;
 const executeQuery = async (text, params = []) => {
   if (isPg && pool) {
     try {
-      const result = await pool.query(text, params);
+      const queryPromise = pool.query(text, params);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('PostgreSQL query timed out after 3000ms')), 3000)
+      );
+      const result = await Promise.race([queryPromise, timeoutPromise]);
       return {
         rows: result.rows || [],
         rowCount: result.rowCount || 0,
       };
     } catch (err) {
-      const isConnErr = err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-        || (err.message && (err.message.includes('timeout') || err.message.includes('Connection terminated') || err.message.includes('closed')));
-      if (isConnErr) {
-        console.warn('PostgreSQL connection dropped (' + err.message + '). Seamlessly falling back to local SQLite.');
-        isPg = false;
-        getSqliteDb();
-      } else {
-        throw err;
-      }
+      console.warn('PostgreSQL query issue (' + err.message + '). Seamlessly falling back to local SQLite.');
+      isPg = false;
+      getSqliteDb();
     }
   }
 
   // Convert $1, $2 parameter placeholders and expand params accordingly for SQLite
   const sDb = getSqliteDb();
-  const matchedParams = [];
-  const sqliteQuery = text.replace(/\$(\d+)/g, (_, num) => {
-    const idx = parseInt(num, 10) - 1;
-    matchedParams.push(params[idx]);
-    return '?';
-  });
+  let matchedParams = [];
+  let sqliteQuery = text;
+
+  if (/\$\d+/.test(text)) {
+    sqliteQuery = text.replace(/\$(\d+)/g, (_, num) => {
+      const idx = parseInt(num, 10) - 1;
+      matchedParams.push(params[idx]);
+      return '?';
+    });
+  } else {
+    matchedParams = Array.isArray(params) ? [...params] : [params];
+  }
 
   return new Promise((resolve, reject) => {
     if (/^\s*(SELECT|PRAGMA)/i.test(sqliteQuery)) {
@@ -223,6 +246,7 @@ const initDb = async () => {
         await executeQuery("UPDATE employers SET soa2_person_received = NULL WHERE soa2_date IS NULL");
         await executeQuery("UPDATE employers SET soa3_person_received = NULL WHERE soa3_date IS NULL");
         await executeQuery("UPDATE employers SET billing_person_received = NULL WHERE billing_date IS NULL");
+        await executeQuery("UPDATE employers SET payer_type = 'Non-Paying' WHERE payer_type IN ('Special Payer', 'SP')");
       } catch (_e) {}
 
       await executeQuery(`
@@ -234,9 +258,13 @@ const initDb = async () => {
           end_time TIME,
           description TEXT,
           created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      try {
+        await executeQuery('ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()');
+      } catch (_e) {}
     } catch (pgErr) {
       console.warn('Could not connect to PostgreSQL (' + pgErr.message + '). Falling back to local SQLite.');
       isPg = false;
@@ -358,6 +386,7 @@ const initDb = async () => {
       await executeQuery("UPDATE employers SET soa2_person_received = NULL WHERE soa2_date IS NULL");
       await executeQuery("UPDATE employers SET soa3_person_received = NULL WHERE soa3_date IS NULL");
       await executeQuery("UPDATE employers SET billing_person_received = NULL WHERE billing_date IS NULL");
+      await executeQuery("UPDATE employers SET payer_type = 'Non-Paying' WHERE payer_type IN ('Special Payer', 'SP')");
     } catch (_e) {}
 
     await executeQuery(`
@@ -369,9 +398,21 @@ const initDb = async () => {
         end_time TEXT,
         description TEXT,
         created_by TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    try {
+      await executeQuery('ALTER TABLE calendar_events ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+    } catch (_e) {}
+
+    const adminRecord = await get('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', ['admin']);
+    if (adminRecord?.id) {
+      await executeQuery(
+        'UPDATE calendar_events SET created_by = ? WHERE created_by IS NULL OR TRIM(COALESCE(created_by, "")) = ""',
+        [adminRecord.id]
+      );
+    }
   }
 
   // Seed default users if empty
@@ -646,7 +687,7 @@ const initDb = async () => {
       assigned_view: 'AO1',
       employer_number: '07-8291034-9',
       employer_name: 'Toledo Ocean View Seafood Restaurant',
-      payer_type: 'Special Payer',
+      payer_type: 'Non-Paying',
       address: 'Ibo, Toledo City, Cebu',
       address_line1: 'Ibo Coastal Road',
       address_country: 'Philippines',
@@ -796,7 +837,7 @@ const initDb = async () => {
       assigned_view: 'AO2',
       employer_number: '07-4319028-7',
       employer_name: 'Asturias Grain Mills & Agricultural Feeds Center',
-      payer_type: 'Special Payer',
+      payer_type: 'Non-Paying',
       address: 'Santa Lucia, Asturias, Cebu',
       address_line1: 'Provincial Road, Santa Lucia',
       address_country: 'Philippines',
