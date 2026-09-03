@@ -333,6 +333,7 @@ const initDb = async () => {
         legal_referral_date TEXT,
         demand_letter_date TEXT,
         demand_letter_received_date TEXT,
+        demand_person_received TEXT,
         handling_lawyer TEXT,
         docket_number TEXT,
         case_date TEXT,
@@ -360,6 +361,9 @@ const initDb = async () => {
     } catch (_e) {}
     try {
       await executeQuery('ALTER TABLE employers ADD COLUMN billing_person_received TEXT');
+    } catch (_e) {}
+    try {
+      await executeQuery('ALTER TABLE employers ADD COLUMN demand_person_received TEXT');
     } catch (_e) {}
     try {
       await executeQuery('ALTER TABLE employers ADD COLUMN soa2_principal REAL DEFAULT 0');

@@ -560,68 +560,121 @@ const showCurrentDateNotification = () => {
 const getDynamicCalendarEvents = (year, month, daysInMonth) => {
   const dynamicEvents = [];
   const officerView = getOfficerView(currentUser?.role);
-  const employers = getDashboardEmployers(officerView || "MasterFile");
+  const employers = getDashboardEmployers(officerView || 'MasterFile');
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   employers.forEach((emp) => {
-    const status = (emp.status || "").toLowerCase();
-    if (status.includes("settled") || status.includes("legal")) return;
-    const servedDateStr = emp.soa3_date || emp.soa2_date || emp.soa_date || emp.billing_date;
-    if (!servedDateStr) return;
-    const cleanDate = String(servedDateStr).split("T")[0];
-    const served = new Date(cleanDate);
-    if (isNaN(served.getTime())) return;
-    const dueDateObj = new Date(served.getTime() + 15 * 24 * 60 * 60 * 1000);
-    const dueStr = formatCalendarDate(dueDateObj);
-    dynamicEvents.push({
-      id: "soa-due-" + emp.id,
-      isDynamic: true,
-      type: "soa-due",
-      event_date: dueStr,
-      title: "15-Day Due: " + (emp.employer_name || "Employer"),
-      description: "15-Day SOA compliance period expires. Current Status: " + (emp.status || "1st SOA Served") + ". Assigned: " + (emp.assigned_view || "AO1"),
-      employer: emp
+    const status = (emp.status || '').toLowerCase();
+    if (status === 'settled' || (status.includes('settled') && !status.includes('unsettled'))) {
+      return; // Settled accounts have no active compliance deadlines
+    }
+
+    // Process all recorded SOA stages (1st SOA, 2nd SOA, 3rd SOA)
+    const stages = [
+      { name: '1st SOA', date: emp.soa_date, label: '1st SOA Deadline' },
+      { name: '2nd SOA', date: emp.soa2_date, label: '2nd SOA Deadline' },
+      { name: '3rd SOA', date: emp.soa3_date, label: '3rd SOA Deadline' },
+    ];
+
+    stages.forEach((stg) => {
+      if (!stg.date) return;
+      const cleanDate = String(stg.date).split('T')[0].trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) return;
+
+      const served = new Date(`${cleanDate}T00:00:00`);
+      if (isNaN(served.getTime())) return;
+
+      const dueDateObj = new Date(served);
+      dueDateObj.setDate(dueDateObj.getDate() + SOA_COMPLIANCE_DAYS);
+      const dueStr = formatCalendarDate(dueDateObj);
+
+      // Calculate days remaining from today
+      const diffTime = dueDateObj.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const isLapsed = diffDays <= 0;
+      const isDueSoon = diffDays > 0 && diffDays <= 3;
+
+      let statusLevel = 'upcoming';
+      let statusLabel = `${diffDays} days remaining`;
+      if (isLapsed) {
+        statusLevel = 'overdue';
+        statusLabel = diffDays === 0 ? 'Due Today (15-Day Deadline)' : `${Math.abs(diffDays)} days overdue`;
+      } else if (isDueSoon) {
+        statusLevel = 'warning';
+        statusLabel = `${diffDays} day${diffDays === 1 ? '' : 's'} remaining (Approaching)`;
+      }
+
+      dynamicEvents.push({
+        id: `soa-${stg.name.toLowerCase().replace(/\s+/g, '')}-${emp.id}`,
+        isDynamic: true,
+        type: 'soa-due',
+        stage: stg.name,
+        statusLevel,
+        diffDays,
+        isLapsed,
+        isDueSoon,
+        event_date: dueStr,
+        title: `${emp.employer_name} — ${stg.label}`,
+        description: `15-Day compliance deadline for ${stg.name} served on ${cleanDate}. SSS Employer ID: ${emp.employer_number}. Current Status: ${emp.status || stg.name + ' Served'}. Assigned Officer: ${emp.assigned_view || 'AO'}. Status: ${statusLabel}.`,
+        employer: emp,
+      });
     });
+
+    // Legal hearing event
+    if (emp.case_date) {
+      const cleanCaseDate = String(emp.case_date).split('T')[0].trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanCaseDate)) {
+        dynamicEvents.push({
+          id: `legal-${emp.id}`,
+          isDynamic: true,
+          type: 'legal-case',
+          stage: 'Legal Hearing',
+          statusLevel: 'legal',
+          event_date: cleanCaseDate,
+          title: `Legal Hearing: ${emp.employer_name}`,
+          description: `Scheduled legal action / court hearing for ${emp.employer_name} (${emp.employer_number}). Handling Lawyer: ${emp.handling_lawyer || 'Branch Legal Division'}. Docket #: ${emp.docket_number || 'N/A'}. Assigned: ${emp.assigned_view || 'AO'}.`,
+          employer: emp,
+        });
+      }
+    }
   });
-  employers.forEach((emp) => {
-    if (!emp.case_date) return;
-    const cleanDate = String(emp.case_date).split("T")[0];
-    dynamicEvents.push({
-      id: "legal-" + emp.id,
-      isDynamic: true,
-      type: "legal-case",
-      event_date: cleanDate,
-      title: "Legal Hearing: " + (emp.employer_name || "Employer"),
-      description: "Scheduled legal action / court hearing. Handling Lawyer: " + (emp.handling_lawyer || "Branch Legal") + ". Docket #: " + (emp.docket_number || "N/A"),
-      employer: emp
-    });
-  });
-  const mStr = String(month + 1).padStart(2, "0");
+
+  // Statutory branch remittance deadlines
+  const mStr = String(month + 1).padStart(2, '0');
   dynamicEvents.push({
-    id: "stat-10-" + year + "-" + month,
+    id: `stat-10-${year}-${month}`,
     isDynamic: true,
-    type: "statutory",
-    event_date: year + "-" + mStr + "-10",
-    title: "SSS Regular Contribution Remittance Deadline",
-    description: "Official SSS monthly contribution remittance deadline for regular registered employers."
+    type: 'statutory',
+    stage: 'Statutory Cutoff',
+    statusLevel: 'statutory',
+    event_date: `${year}-${mStr}-10`,
+    title: 'SSS Regular Contribution Remittance Deadline',
+    description: 'Official SSS monthly contribution remittance deadline for regular registered employers.',
   });
   dynamicEvents.push({
-    id: "stat-end-" + year + "-" + month,
+    id: `stat-end-${year}-${month}`,
     isDynamic: true,
-    type: "statutory",
-    event_date: year + "-" + mStr + "-" + String(daysInMonth).padStart(2, "0"),
-    title: "SSS Voluntary & Special Remittance Cut-off",
-    description: "End-of-month contribution and loan amortization remittance cut-off date."
+    type: 'statutory',
+    stage: 'Statutory Cutoff',
+    statusLevel: 'statutory',
+    event_date: `${year}-${mStr}-${String(daysInMonth).padStart(2, '0')}`,
+    title: 'SSS Voluntary & Special Remittance Cut-off',
+    description: 'End-of-month contribution and loan amortization remittance cut-off date.',
   });
+
   return dynamicEvents;
 };
+
 window.openCalendarEmployerRecord = (employerId) => {
   if (calendarSummaryModal) calendarSummaryModal.hidden = true;
   if (calendarModal) calendarModal.hidden = true;
-  const matchingRow = document.querySelector("tr[data-employer-id=\"" + employerId + "\"]");
+  const matchingRow = document.querySelector(`tr[data-employer-id="${employerId}"]`);
   if (matchingRow) {
-    const assignedView = matchingRow.dataset.assignedView || "MasterFile";
+    const assignedView = matchingRow.dataset.assignedView || 'MasterFile';
     navigateToView(assignedView);
-    matchingRow.scrollIntoView({ behavior: "smooth", block: "center" });
-    matchingRow.classList.add("is-selected");
+    matchingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    matchingRow.classList.add('is-selected');
     openEmployerEdit(matchingRow);
   }
 };
@@ -629,39 +682,111 @@ window.openCalendarEmployerRecord = (employerId) => {
 const renderCalendar = () => {
   const year = calendarMonth.getFullYear();
   const month = calendarMonth.getMonth();
-  calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   calendarGrid.replaceChildren();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const dynamicEvents = getDynamicCalendarEvents(year, month, daysInMonth);
   const allEvents = [...calendarEvents, ...dynamicEvents];
+
   for (let index = 0; index < firstDay + daysInMonth; index += 1) {
-    const dayCell = document.createElement("div");
-    dayCell.className = "calendar-day";
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
     if (index < firstDay) {
-      dayCell.classList.add("calendar-day-empty");
+      dayCell.classList.add('calendar-day-empty');
     } else {
       const day = index - firstDay + 1;
       const date = formatCalendarDate(new Date(year, month, day));
       if (date === formatCalendarDate(new Date())) dayCell.classList.add('is-today');
+
+      const dayEvents = allEvents.filter((event) => normalizeCalendarDateString(event.event_date) === date);
+      const hasOverdue = dayEvents.some((e) => e.statusLevel === 'overdue');
+      if (hasOverdue) dayCell.classList.add('has-overdue');
+
       dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
       dayCell.addEventListener('click', () => {
         openCalendarEventModalForDate(date);
       });
-      calendarEvents.filter((event) => normalizeCalendarDateString(event.event_date) === date).forEach((event) => {
+
+      dayEvents.forEach((event) => {
         const eventButton = document.createElement('button');
         eventButton.className = 'calendar-event';
         eventButton.type = 'button';
-        eventButton.textContent = event.title;
+
+        if (event.isDynamic) {
+          eventButton.classList.add('event-compliance');
+          if (event.statusLevel) eventButton.classList.add(`event-${event.statusLevel}`);
+          let prefix = '📋 ';
+          if (event.statusLevel === 'overdue') prefix = '⚠️ ';
+          else if (event.statusLevel === 'warning') prefix = '⏳ ';
+          else if (event.statusLevel === 'legal') prefix = '⚖️ ';
+          else if (event.statusLevel === 'statutory') prefix = '🏛️ ';
+          eventButton.textContent = `${prefix}${event.title}`;
+        } else {
+          eventButton.classList.add('event-manual');
+          eventButton.textContent = `📝 ${event.title}`;
+        }
+
         eventButton.addEventListener('click', (eventClick) => {
           eventClick.stopPropagation();
           activeCalendarSummaryEvent = event;
-          if (calendarEditEvent) calendarEditEvent.dataset.eventId = String(event.id);
-          if (calendarDeleteEvent) calendarDeleteEvent.dataset.eventId = String(event.id);
-          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${normalizeCalendarDateString(event.event_date)}</p><p>${event.description || 'No description provided.'}</p>`;
+
+          if (event.isDynamic) {
+            // Auto-generated compliance or statutory event
+            if (calendarEditEvent) calendarEditEvent.hidden = true;
+            if (calendarDeleteEvent) calendarDeleteEvent.hidden = true;
+
+            const emp = event.employer;
+            let actionHtml = '';
+            if (emp && emp.id) {
+              actionHtml = `
+                <div class="calendar-summary-record-action">
+                  <button class="calendar-view-table-btn" type="button" onclick="window.openCalendarEmployerRecord('${emp.id}')">
+                    View Employer in ${emp.assigned_view || 'MasterFile'} &rarr;
+                  </button>
+                </div>
+              `;
+            }
+
+            let badgeClass = 'payer-badge-ip';
+            if (event.statusLevel === 'overdue') badgeClass = 'payer-badge-danger';
+            else if (event.statusLevel === 'warning') badgeClass = 'payer-badge-warning';
+            else if (event.statusLevel === 'legal') badgeClass = 'payer-badge-legal';
+            else if (event.statusLevel === 'statutory') badgeClass = 'payer-badge-rp';
+
+            calendarSummary.innerHTML = `
+              <div class="calendar-summary-header">
+                <h3>${event.title}</h3>
+                <span class="payer-badge ${badgeClass}">${(event.statusLevel || 'Compliance').toUpperCase()}</span>
+              </div>
+              <p class="calendar-summary-date"><strong>Date:</strong> ${normalizeCalendarDateString(event.event_date)}</p>
+              <p class="calendar-summary-desc">${event.description || 'No description provided.'}</p>
+              ${actionHtml}
+            `;
+          } else {
+            // User-created manual note event
+            if (calendarEditEvent) {
+              calendarEditEvent.hidden = false;
+              calendarEditEvent.dataset.eventId = String(event.id);
+            }
+            if (calendarDeleteEvent) {
+              calendarDeleteEvent.hidden = false;
+              calendarDeleteEvent.dataset.eventId = String(event.id);
+            }
+            calendarSummary.innerHTML = `
+              <div class="calendar-summary-header">
+                <h3>${event.title}</h3>
+                <span class="payer-badge payer-badge-manual">MANUAL NOTE</span>
+              </div>
+              <p class="calendar-summary-date"><strong>Date:</strong> ${normalizeCalendarDateString(event.event_date)}</p>
+              <p class="calendar-summary-desc">${event.description || 'No description provided.'}</p>
+            `;
+          }
+
           calendarSummaryModal.hidden = false;
           calendarSummaryClose.focus();
         });
+
         dayCell.appendChild(eventButton);
       });
     }
@@ -2949,6 +3074,8 @@ employerForm.addEventListener('submit', async (event) => {
   addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   refreshMainDashboard();
   loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
+  updateSoaReminders();
+  if (calendarModal && !calendarModal.hidden) renderCalendar();
   editingEmployerId = null;
   employerSuccessModal.hidden = false;
   employerSuccessOk.focus();
