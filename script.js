@@ -3190,7 +3190,7 @@ if (employerNumberInput) {
     if (val.length > 9) {
       val = `${val.slice(0, 2)}-${val.slice(2, 9)}-${val.slice(9)}`;
     } else if (val.length > 2) {
-      val = `${val.slice(0, 2)}`;
+      val = `${val.slice(0, 2)}-${val.slice(2)}`;
     }
     e.target.value = val;
   });
