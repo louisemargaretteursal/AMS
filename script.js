@@ -1112,7 +1112,7 @@ const isBillingDue = (billingDate, today = new Date()) => {
 const updateSoaReminders = () => {
   const badge = document.getElementById('soaBadgeCount');
   const reminderList = document.getElementById('soaReminderList');
-  if (!badge) return;
+  const bellBtn = document.getElementById('soaNotificationBell');
 
   const officerView = getOfficerView(currentUser?.role);
   const selector = officerView
@@ -1134,10 +1134,11 @@ const updateSoaReminders = () => {
     }
   });
 
-  badge.textContent = dueEmployers.length;
-  badge.hidden = dueEmployers.length === 0;
+  if (badge) {
+    badge.textContent = dueEmployers.length;
+    badge.hidden = dueEmployers.length === 0;
+  }
 
-  const bellBtn = document.getElementById('soaNotificationBell');
   if (bellBtn) {
     bellBtn.classList.toggle('soa-bell-pulse', dueEmployers.length > 0);
   }
@@ -3012,6 +3013,47 @@ if (soaReminderModal) {
     if (event.target === soaReminderModal) soaReminderModal.hidden = true;
   });
 }
+
+// Dashboard Quality Monitor interactive row clicks
+document.querySelectorAll('[data-monitor-action]').forEach((row) => {
+  row.addEventListener('click', () => {
+    const action = row.dataset.monitorAction;
+    if (action === 'dueCount') {
+      updateSoaReminders();
+      if (soaReminderModal) soaReminderModal.hidden = false;
+      return;
+    }
+
+    const targetView = isAdminSideRole(currentUser?.role) ? 'MasterFile' : (getOfficerView(currentUser?.role) || 'MasterFile');
+    navigateToView(targetView);
+
+    const view = document.querySelector(`[data-ao-view="${targetView}"]`);
+    if (!view) return;
+
+    if (action === 'settled') {
+      const statusFilter = view.querySelector('[data-filter-status]');
+      if (statusFilter) statusFilter.value = 'Settled';
+    } else if (action === 'unsettled') {
+      const statusFilter = view.querySelector('[data-filter-status]');
+      if (statusFilter) statusFilter.value = 'Unsettled';
+    } else if (action === 'legalCount') {
+      const statusFilter = view.querySelector('[data-filter-status]');
+      if (statusFilter) statusFilter.value = 'Referred to Legal';
+    } else if (action === 'rp') {
+      const allTabs = view.querySelectorAll('.ao-sheet-tab');
+      allTabs.forEach((t) => t.classList.remove('active'));
+      const rpTab = view.querySelector('.ao-sheet-tab[data-sheet="RP"]');
+      if (rpTab) rpTab.classList.add('active');
+    } else if (action === 'ipSp') {
+      const allTabs = view.querySelectorAll('.ao-sheet-tab');
+      allTabs.forEach((t) => t.classList.remove('active'));
+      const ipTab = view.querySelector('.ao-sheet-tab[data-sheet="IP"]');
+      if (ipTab) ipTab.classList.add('active');
+    }
+
+    filterAoTable(targetView);
+  });
+});
 
 // Auto-format SSS Employer Number to XX-XXXXXXX-X
 const employerNumberInput = employerForm?.elements?.employerNumber;
