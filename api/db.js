@@ -16,7 +16,13 @@ let sqliteDb = null;
 
 const getSqliteDb = () => {
   if (!sqliteDb) {
-    const sqlite3 = require('sqlite3').verbose();
+    let sqlite3;
+    try {
+      sqlite3 = require('sqlite3').verbose();
+    } catch (err) {
+      console.error('SQLite3 native driver failed to load:', err.message);
+      throw new Error(`SQLite3 native driver is not available (${err.message}). For production or Render deployments, ensure DATABASE_URL is set to a valid PostgreSQL connection.`);
+    }
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '..', 'data', 'sss_local.db');
     const dbDir = path.dirname(dbPath);
     if (!fs.existsSync(dbDir)) {
@@ -49,9 +55,9 @@ if (isPg) {
   pool = new Pool({
     connectionString: databaseUrl,
     ssl: isLocalhost ? false : { rejectUnauthorized: false },
-    connectionTimeoutMillis: 3000,
-    statement_timeout: 3000,
-    query_timeout: 3000,
+    connectionTimeoutMillis: 10000,
+    statement_timeout: 10000,
+    query_timeout: 10000,
   });
 } else {
   getSqliteDb();
@@ -240,6 +246,9 @@ const initDb = async () => {
         await executeQuery('ALTER TABLE employers ADD COLUMN IF NOT EXISTS soa3_interest NUMERIC(12, 2) DEFAULT 0');
       } catch (_e) {}
       try {
+        await executeQuery('ALTER TABLE employers ADD COLUMN IF NOT EXISTS soa3_total NUMERIC(12, 2) DEFAULT 0');
+      } catch (_e) {}
+      try {
         await executeQuery("UPDATE employers SET billing_date = NULL, billing_person_received = NULL WHERE status != 'Settled'");
         await executeQuery("UPDATE employers SET status = '1st SOA Served' WHERE status IN ('Not Yet Registered', 'Registered', 'Unsettled', 'Pending', '')");
         await executeQuery("UPDATE employers SET person_received = NULL WHERE soa_date IS NULL");
@@ -266,7 +275,16 @@ const initDb = async () => {
         await executeQuery('ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()');
       } catch (_e) {}
     } catch (pgErr) {
-      console.warn('Could not connect to PostgreSQL (' + pgErr.message + '). Falling back to local SQLite.');
+      console.warn('Could not connect to PostgreSQL (' + pgErr.message + ').');
+      const isCloudEnv = Boolean(process.env.RENDER || process.env.NODE_ENV === 'production');
+      if (isCloudEnv) {
+        let helpText = '';
+        if (pgErr.message.includes('ENOTFOUND')) {
+          helpText = ' [Render Tip]: Database hostname not resolved. If using Render PostgreSQL, copy the "External Database URL" from your Render Database page and set it as DATABASE_URL in your Web Service Environment variables.';
+        }
+        throw new Error(`Production PostgreSQL connection failed: ${pgErr.message}.${helpText}`);
+      }
+      console.warn('Falling back to local SQLite.');
       isPg = false;
       getSqliteDb();
     }
