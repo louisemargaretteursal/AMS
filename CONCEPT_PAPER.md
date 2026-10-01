@@ -54,6 +54,24 @@ graph TD
 * **Persistence Layer**: Native PostgreSQL (`pg`) with automatic, graceful fallback to local SQLite3 (`sqlite3`) for offline and zero-config local development.
 * **Security Layer**: Stateless HMAC-SHA256 bearer tokens, dual client storage (`localStorage` + `sessionStorage`) with resilient page-refresh rehydration (`restoreSessionOnLoad()`), and SHA-256 cryptographic password hashing.
 
+#### 2.2 Cloud Infrastructure Resilience & Deployment Case Study (Render PaaS & PostgreSQL Lifecycle)
+
+During the cloud deployment lifecycle on Render (Singapore Region: Web Service `AMS` and PostgreSQL database `sss-toledo-db`), an infrastructure outage occurred that highlighted critical lessons in operational continuity:
+
+* **Observed System Incident**:
+  1. Database Service: `sss-toledo-db` marked as **`Suspended by Render`**.
+  2. Web Application Service: `AMS` marked as **`Failed deploy`**.
+  3. Diagnostic Stack Trace: `getaddrinfo ENOTFOUND dpg-da99t9e7bikc738o2iqg-a` followed by `version 'GLIBC_2.38' not found (required by node_sqlite3.node)`.
+
+* **Root Cause Breakdown**:
+  1. **Render 30-Day Free Tier Lifecycle**: Render free-tier PostgreSQL databases expire and suspend automatically after 30 days of operation. When suspended, Render disables container routing and purges the internal domain (`dpg-da99t9e7bikc738o2iqg-a`), causing instant DNS lookup failure (`ENOTFOUND`).
+  2. **Uncontrolled Fallback to Incompatible Local Binaries**: Upon PostgreSQL connection failure, the legacy server script attempted an unshielded fallback to local `sqlite3`. Because modern `sqlite3@6.0.1` Linux prebuilts require `GLIBC_2.38`, while Render's Linux container image runs `GLIBC_2.35`, the application suffered a fatal process abort.
+
+* **Implemented Architectural Remediations (Commit `b28ed48`)**:
+  * **Defensive Driver Isolation**: Encapsulated `getSqliteDb()` in defensive error boundaries in [`api/db.js`](file:///c:/Users/louise%20margarette/OneDrive/Documents/AMS-main/api/db.js) so binary link failures do not abort deployment scripts without diagnostic guidance.
+  * **Cloud Cold-Start Resilience**: Increased PostgreSQL connection and query timeouts from 3,000ms to 10,000ms (`connectionTimeoutMillis: 10000`) to survive free-tier instance spin-up latency.
+  * **Database Sustainability Strategy**: Formulated clear recovery pathways: (a) re-provisioning fresh PostgreSQL instances within the matching regional cluster (Singapore) using External Connection URLs, or (b) migrating to permanent non-expiring PostgreSQL providers (e.g. Supabase or Neon.tech).
+
 ---
 
 ### 3. Core Functional Pillars
