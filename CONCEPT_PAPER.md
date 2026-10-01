@@ -118,6 +118,24 @@ To ensure evidentiary admissibility in case of legal referral, every milestone c
 * Live SVG bezier curve rendering of the branch organizational hierarchy connecting the Branch Administrator to subordinate Account Officers.
 * Interactive officer profile management allowing in-place updates to official titles, contact channels, avatar photographs, and geographic municipal jurisdictions.
 
+#### 3.6 Employer Payer Classification Taxonomy & Operational Logic
+
+A foundational innovation of the SSS Toledo AMS is its automated **Payer Classification Taxonomy**. Rather than treating all registered businesses homogenously, the platform segments employers into five distinct statutory operational categories, each driving distinct algorithmic workflows, financial validations, and UI treatments:
+
+| Payer Classification | Code & Badge | Operational Definition | System Workflow & Enforcement Rule |
+| :--- | :---: | :--- | :--- |
+| **Regularly Paying** | **`RP`** <br>`payer-badge-rp` | Fully compliant employers consistently deducting and remitting employee contributions on time. | • Registration automatically defaults to `Settled`.<br>• Delinquency SOA countdowns and reminder alerts are suppressed.<br>• Account counts aggregate directly into the Branch Performance Table `RP` column. |
+| **Intermittently Paying** | **`IP`** <br>`payer-badge-ip` | Semi-compliant employers that remit sporadically, miss monthly cut-offs, or carry partial arrears. | • Standard subject for the 15-day SOA compliance cycle (`1st SOA` $\rightarrow$ `2nd SOA` $\rightarrow$ `3rd SOA` $\rightarrow$ `Billing Notice`).<br>• Real-time accrual of SSS statutory penalty (2% to 3% monthly) and compounding interest.<br>• Payments dynamically reduce outstanding balances until full settlement. |
+| **Non-Paying** | **`NP`** <br>`payer-badge-np` | Severely delinquent employers failing to remit any deductions despite active workforce rosters. *(Evolved from legacy "Special Payer / SP" via Commit `fd1e55e`)*. | • Highest priority enforcement target flagged with red danger indicators.<br>• Dedicated `NP` tab in AO database views.<br>• Expedited demand letters and fast-track referral to the SSS Legal Department for docketing and prosecution under R.A. 11199. |
+| **New Registrant** | **`NR`** <br>`payer-badge-ip` | Newly enrolled businesses undergoing initial employee verification and coverage establishment. | • Initial evaluation status awaiting baseline contribution remittance schedule.<br>• Excluded from delinquency counters until the first statutory filing deadline lapses. |
+| **Reactivated by Maintenance** | **`REACTIVATED`** <br>`payer-badge-manual` | Previously closed, dormant, or purged entities that have resumed commercial operations. | • Triggers comprehensive historical re-audit, retroactive delinquency assessment, and active AO jurisdiction assignment. |
+
+##### System-Wide Payer Integration Points:
+1. **Dynamic Registration Form (`#payerTypeSelect`)**: Selecting `RP` instantly suggests and defaults the status to `Settled` while locking unneeded delinquency fields. Selecting `IP` or `NP` enforces mandatory entry of Principal, Penalty, and served SOA recipient fields.
+2. **Tabbed Database Segmentation**: Both AO portfolios and the consolidated MasterFile provide 1-click filter pill tabs (`ALL`, `DUE`, `RP`, `IP`, `NP`), allowing officers to isolate non-paying accounts for targeted field inspection sweeps.
+3. **Managerial Branch Matrix**: The Branch Performance Table explicitly breaks down volume into `RP`, `IP`, and `NP` columns per officer, providing immediate visual correlation between delinquent employer ratios and monthly collection quota achievements.
+4. **Data Quality & Audit Guards**: The Pipeline Monitor actively scans for data discrepancies, flagging *"Unassessed IP/NP (₱0.00 Amount)"* records where delinquent classifications were registered without required collectible assessments.
+
 ---
 
 ### 4. Comprehensive Revision History Matrix
