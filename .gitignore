@@ -6,3 +6,5 @@ data/
 .DS_Store
 Thumbs.db
 *.code-workspace
+sqlite3-prebuilt/
+sqlite3-prebuilt.tar.gz

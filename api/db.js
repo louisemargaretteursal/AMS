@@ -384,6 +384,12 @@ const initDb = async () => {
       await executeQuery('ALTER TABLE employers ADD COLUMN soa3_penalty REAL DEFAULT 0');
     } catch (_e) {}
     try {
+      await executeQuery('ALTER TABLE employers ADD COLUMN soa3_interest REAL DEFAULT 0');
+    } catch (_e) {}
+    try {
+      await executeQuery('ALTER TABLE employers ADD COLUMN soa3_total REAL DEFAULT 0');
+    } catch (_e) {}
+    try {
       await executeQuery("UPDATE employers SET billing_date = NULL, billing_person_received = NULL WHERE status != 'Settled'");
       await executeQuery("UPDATE employers SET status = '1st SOA Served' WHERE status IN ('Not Yet Registered', 'Registered', 'Unsettled', 'Pending', '')");
       await executeQuery("UPDATE employers SET person_received = NULL WHERE soa_date IS NULL");
